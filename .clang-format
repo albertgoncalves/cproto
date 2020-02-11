@@ -1,0 +1,12 @@
+Language: Cpp
+IndentWidth: 4
+ColumnLimit: 79
+SpacesInContainerLiterals: false
+PointerAlignment: Left
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: true
+AlignConsecutiveMacros: true
+IndentPPDirectives: BeforeHash
