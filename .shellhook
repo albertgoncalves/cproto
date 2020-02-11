@@ -47,13 +47,13 @@ export FLAGS=(
 )
 
 runc () {
-    clang-format -verbose -i "$WD/src/$1.c" 2>&1 | sed 's/\/.*\///g' || return
-    cp "$WD/src/$1.c" "$WD/build/$1.c"
+    handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
+    clang-format -i "$1" || return
+    cp "$1" "$WD/build/$handle.c"
     (
         cd "$WD/build" || return
-        echo "Compiling $1.c"
-        clang "${FLAGS[@]}" "$1.c" -o "$WD/bin/$1" || return
-        "$WD/bin/$1"
+        clang "${FLAGS[@]}" "$handle.c" -o "$WD/bin/$handle" || return
+        "$WD/bin/$handle"
     )
 }
 
