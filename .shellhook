@@ -15,4 +15,48 @@ for x in "$WD/bin" "$WD/build"; do
     fi
 done
 
-alias clang-format="clang-format -verbose -i"
+export FLAGS=(
+    "-std=c99" \
+    "-ferror-limit=1" \
+    -O0 \
+    -Werror \
+    -Wall \
+    -Wextra \
+    -Wconversion \
+    -Wsign-conversion \
+    -Wunused \
+    -Wunused-function \
+    -Wunused-label \
+    -Wunused-macros \
+    -Wunused-parameter \
+    -Wunused-value \
+    -Wunused-variable \
+    -Wcast-align \
+    -Wcast-qual \
+    -Wmissing-declarations \
+    -Wredundant-decls \
+    -Wmissing-prototypes \
+    -Wnested-externs \
+    -Wpointer-arith \
+    -Wshadow \
+    -Wstrict-prototypes \
+    -Wwrite-strings \
+    -Wswitch \
+    -Wmissing-field-initializers \
+    -pedantic-errors
+)
+
+runc () {
+    set -eu -o pipefail
+    clang-format -verbose -i "$WD/src/$1.c" 2>&1 | sed 's/\/.*\///g'
+    cp "$WD/src/$1.c" "$WD/build/$1.c"
+    (
+        cd "$WD/build" || exit 1
+        echo "Compiling $1.c"
+        clang "${FLAGS[@]}" "$1.c" -o "$WD/bin/$1"
+    )
+    "$WD/bin/$1"
+    set +eu +o pipefail
+}
+
+export -f runc

@@ -47,7 +47,7 @@ static uint8_t pop(linked_list_t* list) {
     return value;
 }
 
-static uint8_t remove_at(linked_list_t* list, size_t index) {
+static uint8_t pop_at(linked_list_t* list, size_t index) {
     node_t* prev_node    = NULL;
     node_t* current_node = list->nodes;
     node_t* next_node    = current_node->ptr;
@@ -79,7 +79,7 @@ static void destroy(linked_list_t* list) {
 
 static void print_list(linked_list_t* list) {
     node_t* current_node = list->nodes;
-    printf("list.nodes  : [");
+    printf("list.nodes : [");
     while (current_node != NULL) {
         printf(" %hhu", current_node->value);
         current_node = current_node->ptr;
@@ -92,21 +92,21 @@ int main(void) {
     {
         for (size_t i = 0; i < 5; ++i) {
             uint8_t value = (uint8_t)i;
-            printf("push()      : %hhu\n", value);
+            printf("push()     : %hhu\n", value);
             push(&list, value);
         }
         print_list(&list);
         printf("\n");
     }
     {
-        printf("remove_at() : %hhu\n", remove_at(&list, 1));
+        printf("pop_at()   : %hhu\n", pop_at(&list, 1));
         print_list(&list);
         printf("\n");
     }
     {
         for (size_t i = 0; i < 2; ++i) {
             uint8_t value = pop(&list);
-            printf("pop()       : %hhu\n", value);
+            printf("pop()      : %hhu\n", value);
         }
         print_list(&list);
     }
