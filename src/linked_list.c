@@ -23,7 +23,7 @@ typedef struct node {
 } node_t;
 
 typedef struct {
-    struct node* head;
+    node_t* head;
 } linked_list_t;
 
 static void push(linked_list_t* list, T value) {

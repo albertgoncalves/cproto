@@ -25,8 +25,8 @@ typedef struct node {
 } node_t;
 
 typedef struct {
-    struct node* first;
-    struct node* last;
+    node_t* first;
+    node_t* last;
 } fifo_queue_t;
 
 static void push(fifo_queue_t* queue, T value) {
