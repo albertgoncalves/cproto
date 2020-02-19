@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* See `https://github.com/user-none/poddown/blob/master/src/tpool.c`. */
+/* NOTE: Based on
+ * `https://github.com/user-none/poddown/blob/master/src/tpool.c`.
+ */
 
 #define BOLD_PURPLE    "\033[1;35m"
 #define BOLD           "\033[1m"
