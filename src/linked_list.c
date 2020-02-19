@@ -2,10 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* NOTE: Forthcoming FIFO example via
- * `https://github.com/user-none/poddown/blob/master/src/tpool.c`.
- */
-
 #define BOLD_PURPLE    "\033[1;35m"
 #define BOLD           "\033[1m"
 #define BOLD_UNDERLINE "\033[1;4m"
@@ -19,18 +15,18 @@
         exit(1);                                                          \
     }
 
-struct node {
-    uint8_t      value;
+#define T uint8_t
+
+typedef struct node {
+    T            value;
     struct node* ptr;
-};
+} node_t;
 
-typedef struct node node_t;
-
-typedef struct linked_list {
+typedef struct {
     struct node* head;
 } linked_list_t;
 
-static void push(linked_list_t* list, uint8_t value) {
+static void push(linked_list_t* list, T value) {
     node_t* next_node = malloc(sizeof(node_t));
     EXIT_IF(next_node == NULL);
     next_node->value = value;
@@ -38,16 +34,16 @@ static void push(linked_list_t* list, uint8_t value) {
     list->head       = next_node;
 }
 
-static uint8_t pop(linked_list_t* list) {
+static T pop(linked_list_t* list) {
     node_t* current_node = list->head;
     EXIT_IF(current_node == NULL);
-    list->head    = current_node->ptr;
-    uint8_t value = current_node->value;
+    list->head = current_node->ptr;
+    T value    = current_node->value;
     free(current_node);
     return value;
 }
 
-static uint8_t pop_at(linked_list_t* list, size_t index) {
+static T pop_at(linked_list_t* list, size_t index) {
     node_t* prev_node    = NULL;
     node_t* current_node = list->head;
     node_t* next_node    = current_node->ptr;
@@ -62,7 +58,7 @@ static uint8_t pop_at(linked_list_t* list, size_t index) {
     } else {
         list->head = next_node;
     }
-    uint8_t value = current_node->value;
+    T value = current_node->value;
     free(current_node);
     return value;
 }
@@ -91,7 +87,7 @@ int main(void) {
     linked_list_t list = {.head = NULL};
     {
         for (size_t i = 0; i < 5; ++i) {
-            uint8_t value = (uint8_t)i;
+            T value = (T)i;
             printf("push()   : %hhu\n", value);
             push(&list, value);
         }
@@ -105,8 +101,7 @@ int main(void) {
     }
     {
         for (size_t i = 0; i < 2; ++i) {
-            uint8_t value = pop(&list);
-            printf("pop()    : %hhu\n", value);
+            printf("pop()    : %hhu\n", pop(&list));
         }
         print_list(&list);
     }
