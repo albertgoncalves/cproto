@@ -47,7 +47,8 @@ static void push(fifo_queue_t* queue, T value) {
 
 static T pop(fifo_queue_t* queue) {
     node_t* current_node = queue->first;
-    queue->first         = current_node->ptr;
+    EXIT_IF(current_node == NULL);
+    queue->first = current_node->ptr;
     if (queue->first == queue->last) {
         queue->last = NULL;
     }
@@ -88,7 +89,7 @@ int main(void) {
         printf("\n");
     }
     {
-        for (size_t i = 0; i < 2; ++i) {
+        for (size_t i = 0; i < 5; ++i) {
             printf("pop()   : %hhu\n", pop(&queue));
         }
         print_queue(&queue);
