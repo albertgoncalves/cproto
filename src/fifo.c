@@ -32,6 +32,7 @@ typedef struct {
 } fifo_queue_t;
 
 static void push(fifo_queue_t* queue, T value) {
+    EXIT_IF(queue == NULL);
     node_t* next_node = malloc(sizeof(node_t));
     EXIT_IF(next_node == NULL);
     next_node->value = value;
@@ -48,9 +49,9 @@ static void push(fifo_queue_t* queue, T value) {
 }
 
 static T pop(fifo_queue_t* queue) {
+    EXIT_IF(queue == NULL || queue->first == NULL);
     node_t* current_node = queue->first;
-    EXIT_IF(current_node == NULL);
-    queue->first = current_node->ptr;
+    queue->first         = current_node->ptr;
     if (queue->first == queue->last) {
         queue->last = NULL;
     }
@@ -60,6 +61,7 @@ static T pop(fifo_queue_t* queue) {
 }
 
 static void destroy(fifo_queue_t* queue) {
+    EXIT_IF(queue == NULL);
     node_t* current_node = queue->first;
     node_t* next_node;
     while (current_node != NULL) {
@@ -70,6 +72,7 @@ static void destroy(fifo_queue_t* queue) {
 }
 
 static void print_queue(fifo_queue_t* queue) {
+    EXIT_IF(queue == NULL);
     node_t* current_node = queue->first;
     printf("queue[] : [");
     while (current_node != NULL) {

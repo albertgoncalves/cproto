@@ -36,31 +36,27 @@ static void push(linked_list_t* list, T value) {
 }
 
 static T pop(linked_list_t* list) {
-    EXIT_IF(list == NULL);
+    EXIT_IF(list == NULL || list->head == NULL);
     node_t* current_node = list->head;
-    EXIT_IF(current_node == NULL);
-    list->head = current_node->ptr;
-    T value    = current_node->value;
+    list->head           = current_node->ptr;
+    T value              = current_node->value;
     free(current_node);
     return value;
 }
 
 static T pop_at(linked_list_t* list, size_t index) {
-    EXIT_IF(list == NULL);
+    EXIT_IF(list == NULL || list->head == NULL);
     node_t* prev_node    = NULL;
     node_t* current_node = list->head;
-    EXIT_IF(current_node == NULL);
-    node_t* next_node = current_node->ptr;
     for (size_t i = 0; i < index; ++i) {
-        EXIT_IF(next_node == NULL);
+        EXIT_IF(current_node->ptr == NULL);
         prev_node    = current_node;
-        current_node = next_node;
-        next_node    = next_node->ptr;
+        current_node = current_node->ptr;
     }
-    if (prev_node != NULL) {
-        prev_node->ptr = next_node;
+    if (prev_node == NULL) {
+        list->head = current_node->ptr;
     } else {
-        list->head = next_node;
+        prev_node->ptr = current_node->ptr;
     }
     T value = current_node->value;
     free(current_node);
@@ -79,6 +75,7 @@ static void destroy(linked_list_t* list) {
 }
 
 static void print_list(linked_list_t* list) {
+    EXIT_IF(list == NULL);
     node_t* current_node = list->head;
     printf("list[]   : [");
     while (current_node != NULL) {
