@@ -1,10 +1,7 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-/* NOTE: Based on
- * `https://github.com/user-none/poddown/blob/master/src/tpool.c`.
- */
 
 #define BOLD_PURPLE    "\033[1;35m"
 #define BOLD           "\033[1m"
@@ -19,7 +16,8 @@
         exit(1);                                                          \
     }
 
-#define T uint8_t
+typedef uint8_t T;
+typedef bool    error_t;
 
 typedef struct node {
     T            value;
@@ -31,10 +29,19 @@ typedef struct {
     node_t* last;
 } fifo_queue_t;
 
-static void push(fifo_queue_t* queue, T value) {
-    EXIT_IF(queue == NULL);
+typedef struct {
+    T       value;
+    error_t error;
+} T_error_t;
+
+static error_t push(fifo_queue_t* queue, T value) {
+    if (queue == NULL) {
+        return true;
+    }
     node_t* next_node = malloc(sizeof(node_t));
-    EXIT_IF(next_node == NULL);
+    if (next_node == NULL) {
+        return true;
+    }
     next_node->value = value;
     next_node->ptr   = NULL;
     if ((queue->first != NULL) && (queue->last == NULL)) {
@@ -46,22 +53,30 @@ static void push(fifo_queue_t* queue, T value) {
     } else {
         queue->first = next_node;
     }
+    return false;
 }
 
-static T pop(fifo_queue_t* queue) {
-    EXIT_IF(queue == NULL || queue->first == NULL);
+static T_error_t pop(fifo_queue_t* queue) {
+    T_error_t result;
+    if (queue == NULL || queue->first == NULL) {
+        result.error = true;
+        return result;
+    }
     node_t* current_node = queue->first;
     queue->first         = current_node->ptr;
     if (queue->first == queue->last) {
         queue->last = NULL;
     }
-    T value = current_node->value;
+    result.value = current_node->value;
+    result.error = false;
     free(current_node);
-    return value;
+    return result;
 }
 
 static void destroy(fifo_queue_t* queue) {
-    EXIT_IF(queue == NULL);
+    if (queue == NULL) {
+        return;
+    }
     node_t* current_node = queue->first;
     node_t* next_node;
     while (current_node != NULL) {
@@ -72,7 +87,9 @@ static void destroy(fifo_queue_t* queue) {
 }
 
 static void print_queue(fifo_queue_t* queue) {
-    EXIT_IF(queue == NULL);
+    if (queue == NULL) {
+        return;
+    }
     node_t* current_node = queue->first;
     printf("queue[] : [");
     while (current_node != NULL) {
@@ -85,20 +102,23 @@ static void print_queue(fifo_queue_t* queue) {
 int main(void) {
     fifo_queue_t queue = {.first = NULL, .last = NULL};
     {
-        for (size_t i = 0; i < 5; ++i) {
+        for (size_t i = 0; i < 10; ++i) {
             T value = (T)i;
             printf("push()  : %hhu\n", value);
-            push(&queue, value);
+            EXIT_IF(push(&queue, value));
         }
         print_queue(&queue);
         printf("\n");
     }
     {
-        for (size_t i = 0; i < 5; ++i) {
-            printf("pop()   : %hhu\n", pop(&queue));
+        for (T_error_t r = pop(&queue); !r.error; r = pop(&queue)) {
+            printf("pop()   : %hhu\n", r.value);
         }
         print_queue(&queue);
     }
+    EXIT_IF(push(&queue, (T)11));
+    EXIT_IF(push(&queue, (T)12));
+    print_queue(&queue);
     destroy(&queue);
     return 0;
 }

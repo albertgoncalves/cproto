@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +16,8 @@
         exit(1);                                                          \
     }
 
-#define T uint8_t
+typedef uint8_t T;
+typedef bool    error_t;
 
 typedef struct node {
     T            value;
@@ -26,30 +28,52 @@ typedef struct {
     node_t* head;
 } linked_list_t;
 
-static void push(linked_list_t* list, T value) {
-    EXIT_IF(list == NULL);
+typedef struct {
+    T       value;
+    error_t error;
+} T_error_t;
+
+static error_t push(linked_list_t* list, T value) {
+    if (list == NULL) {
+        return true;
+    }
     node_t* next_node = malloc(sizeof(node_t));
-    EXIT_IF(next_node == NULL);
+    if (next_node == NULL) {
+        return true;
+    }
     next_node->value = value;
     next_node->ptr   = list->head;
     list->head       = next_node;
+    return false;
 }
 
-static T pop(linked_list_t* list) {
-    EXIT_IF(list == NULL || list->head == NULL);
+static T_error_t pop(linked_list_t* list) {
+    T_error_t result;
+    if ((list == NULL) || (list->head == NULL)) {
+        result.error = true;
+        return result;
+    }
     node_t* current_node = list->head;
     list->head           = current_node->ptr;
-    T value              = current_node->value;
+    result.value         = current_node->value;
+    result.error         = false;
     free(current_node);
-    return value;
+    return result;
 }
 
-static T pop_at(linked_list_t* list, size_t index) {
-    EXIT_IF(list == NULL || list->head == NULL);
+static T_error_t pop_at(linked_list_t* list, size_t index) {
+    T_error_t result;
+    if ((list == NULL) || (list->head == NULL)) {
+        result.error = true;
+        return result;
+    }
     node_t* prev_node    = NULL;
     node_t* current_node = list->head;
     for (size_t i = 0; i < index; ++i) {
-        EXIT_IF(current_node->ptr == NULL);
+        if (current_node->ptr == NULL) {
+            result.error = true;
+            return result;
+        }
         prev_node    = current_node;
         current_node = current_node->ptr;
     }
@@ -58,13 +82,16 @@ static T pop_at(linked_list_t* list, size_t index) {
     } else {
         prev_node->ptr = current_node->ptr;
     }
-    T value = current_node->value;
+    result.value = current_node->value;
+    result.error = false;
     free(current_node);
-    return value;
+    return result;
 }
 
 static void destroy(linked_list_t* list) {
-    EXIT_IF(list == NULL);
+    if (list == NULL) {
+        return;
+    }
     node_t* current_node = list->head;
     node_t* next_node;
     while (current_node != NULL) {
@@ -75,7 +102,9 @@ static void destroy(linked_list_t* list) {
 }
 
 static void print_list(linked_list_t* list) {
-    EXIT_IF(list == NULL);
+    if (list == NULL) {
+        return;
+    }
     node_t* current_node = list->head;
     printf("list[]   : [");
     while (current_node != NULL) {
@@ -91,19 +120,22 @@ int main(void) {
         for (size_t i = 0; i < 5; ++i) {
             T value = (T)i;
             printf("push()   : %hhu\n", value);
-            push(&list, value);
+            EXIT_IF(push(&list, value));
         }
         print_list(&list);
         printf("\n");
     }
     {
-        printf("pop_at() : %hhu\n", pop_at(&list, 1));
+        T_error_t r = pop_at(&list, 1);
+        if (!r.error) {
+            printf("pop_at() : %hhu\n", r.value);
+        }
         print_list(&list);
         printf("\n");
     }
     {
-        for (size_t i = 0; i < 2; ++i) {
-            printf("pop()    : %hhu\n", pop(&list));
+        for (T_error_t r = pop(&list); !r.error; r = pop(&list)) {
+            printf("pop()    : %hhu\n", r.value);
         }
         print_list(&list);
     }
