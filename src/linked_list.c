@@ -21,7 +21,7 @@ typedef bool    error_t;
 
 typedef struct node {
     T            value;
-    struct node* ptr;
+    struct node* next;
 } node_t;
 
 typedef struct {
@@ -42,7 +42,7 @@ static error_t push(linked_list_t* list, const T value) {
         return true;
     }
     next_node->value = value;
-    next_node->ptr   = list->head;
+    next_node->next  = list->head;
     list->head       = next_node;
     return false;
 }
@@ -54,7 +54,7 @@ static T_error_t pop(linked_list_t* list) {
         return result;
     }
     node_t* current_node = list->head;
-    list->head           = current_node->ptr;
+    list->head           = current_node->next;
     result.value         = current_node->value;
     result.error         = false;
     free(current_node);
@@ -70,17 +70,17 @@ static T_error_t pop_at(linked_list_t* list, const size_t index) {
     node_t* prev_node    = NULL;
     node_t* current_node = list->head;
     for (size_t i = 0; i < index; ++i) {
-        if (current_node->ptr == NULL) {
+        if (current_node->next == NULL) {
             result.error = true;
             return result;
         }
         prev_node    = current_node;
-        current_node = current_node->ptr;
+        current_node = current_node->next;
     }
     if (prev_node == NULL) {
-        list->head = current_node->ptr;
+        list->head = current_node->next;
     } else {
-        prev_node->ptr = current_node->ptr;
+        prev_node->next = current_node->next;
     }
     result.value = current_node->value;
     result.error = false;
@@ -95,7 +95,7 @@ static void destroy(linked_list_t* list) {
     node_t* current_node = list->head;
     node_t* next_node;
     while (current_node != NULL) {
-        next_node = current_node->ptr;
+        next_node = current_node->next;
         free(current_node);
         current_node = next_node;
     }
@@ -110,7 +110,7 @@ static void print_list(const linked_list_t* list) {
     printf("list[]   : [");
     while (current_node != NULL) {
         printf(" %hhu", current_node->value);
-        current_node = current_node->ptr;
+        current_node = current_node->next;
     }
     printf("]\n");
 }
