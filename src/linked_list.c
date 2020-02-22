@@ -27,6 +27,7 @@ typedef struct {
 } linked_list_t;
 
 static void push(linked_list_t* list, T value) {
+    EXIT_IF(list == NULL);
     node_t* next_node = malloc(sizeof(node_t));
     EXIT_IF(next_node == NULL);
     next_node->value = value;
@@ -35,6 +36,7 @@ static void push(linked_list_t* list, T value) {
 }
 
 static T pop(linked_list_t* list) {
+    EXIT_IF(list == NULL);
     node_t* current_node = list->head;
     EXIT_IF(current_node == NULL);
     list->head = current_node->ptr;
@@ -44,9 +46,11 @@ static T pop(linked_list_t* list) {
 }
 
 static T pop_at(linked_list_t* list, size_t index) {
+    EXIT_IF(list == NULL);
     node_t* prev_node    = NULL;
     node_t* current_node = list->head;
-    node_t* next_node    = current_node->ptr;
+    EXIT_IF(current_node == NULL);
+    node_t* next_node = current_node->ptr;
     for (size_t i = 0; i < index; ++i) {
         EXIT_IF(next_node == NULL);
         prev_node    = current_node;
@@ -64,6 +68,7 @@ static T pop_at(linked_list_t* list, size_t index) {
 }
 
 static void destroy(linked_list_t* list) {
+    EXIT_IF(list == NULL);
     node_t* current_node = list->head;
     node_t* next_node;
     while (current_node != NULL) {
