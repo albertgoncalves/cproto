@@ -34,7 +34,7 @@ typedef struct {
     error_t error;
 } T_error_t;
 
-static error_t push(fifo_queue_t* queue, T value) {
+static error_t push(fifo_queue_t* queue, const T value) {
     if (queue == NULL) {
         return true;
     }
@@ -84,9 +84,11 @@ static void destroy(fifo_queue_t* queue) {
         free(current_node);
         current_node = next_node;
     }
+    queue->first = NULL;
+    queue->last  = NULL;
 }
 
-static void print_queue(fifo_queue_t* queue) {
+static void print_queue(const fifo_queue_t* queue) {
     if (queue == NULL) {
         return;
     }
@@ -103,7 +105,7 @@ int main(void) {
     fifo_queue_t queue = {.first = NULL, .last = NULL};
     {
         for (size_t i = 0; i < 10; ++i) {
-            T value = (T)i;
+            const T value = (T)i;
             printf("push()  : %hhu\n", value);
             EXIT_IF(push(&queue, value));
         }

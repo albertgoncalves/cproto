@@ -33,7 +33,7 @@ typedef struct {
     error_t error;
 } T_error_t;
 
-static error_t push(linked_list_t* list, T value) {
+static error_t push(linked_list_t* list, const T value) {
     if (list == NULL) {
         return true;
     }
@@ -61,7 +61,7 @@ static T_error_t pop(linked_list_t* list) {
     return result;
 }
 
-static T_error_t pop_at(linked_list_t* list, size_t index) {
+static T_error_t pop_at(linked_list_t* list, const size_t index) {
     T_error_t result;
     if ((list == NULL) || (list->head == NULL)) {
         result.error = true;
@@ -99,9 +99,10 @@ static void destroy(linked_list_t* list) {
         free(current_node);
         current_node = next_node;
     }
+    list->head = NULL;
 }
 
-static void print_list(linked_list_t* list) {
+static void print_list(const linked_list_t* list) {
     if (list == NULL) {
         return;
     }
@@ -118,7 +119,7 @@ int main(void) {
     linked_list_t list = {.head = NULL};
     {
         for (size_t i = 0; i < 5; ++i) {
-            T value = (T)i;
+            const T value = (T)i;
             printf("push()   : %hhu\n", value);
             EXIT_IF(push(&list, value));
         }
