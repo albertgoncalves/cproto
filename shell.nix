@@ -1,7 +1,6 @@
 with import <nixpkgs> {};
 let
     shared = [
-        clang_9
         shellcheck
     ];
     hook = ''
@@ -9,12 +8,12 @@ let
     '';
 in
 {
-    darwin = stdenvNoCC.mkDerivation {
+    darwin = llvmPackages_9.stdenv.mkDerivation {
         name = "_";
         buildInputs = shared;
         shellHook = hook;
     };
-    linux = stdenvNoCC.mkDerivation {
+    linux = llvmPackages_9.stdenv.mkDerivation {
         name = "_";
         buildInputs = [
             valgrind
