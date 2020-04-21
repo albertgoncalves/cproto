@@ -8,3 +8,5 @@
 !*.h
 !*.c
 !main
+!data/
+!hello.txt
