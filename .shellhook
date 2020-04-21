@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-if [ "$(uname -s)" = "Darwin" ]; then
-    alias ls="ls --color=auto"
-    alias ll="ls -l"
-else
-    alias open="xdg-open"
-fi
-
 export WD=$PWD
 
 for x in "$WD/bin" "$WD/build"; do
@@ -16,44 +9,63 @@ for x in "$WD/bin" "$WD/build"; do
 done
 
 export FLAGS=(
-    "-std=c99" \
-    "-ferror-limit=1" \
-    -O1 \
-    -Werror \
+    -Os \
     -Wall \
-    -Wextra \
-    -Wconversion \
-    -Wsign-conversion \
-    -Wunused \
-    -Wunused-function \
-    -Wunused-label \
-    -Wunused-macros \
-    -Wunused-parameter \
-    -Wunused-value \
-    -Wunused-variable \
+    -Wbad-function-cast \
     -Wcast-align \
+    "-Wcast-align=strict" \
     -Wcast-qual \
+    -Wconversion \
+    -Wdate-time \
+    -Wdouble-promotion \
+    -Wduplicated-branches \
+    -Wduplicated-cond \
+    -Werror \
+    -Wextra \
+    -Wfatal-errors \
+    -Wfloat-equal \
+    -Wformat-signedness \
+    "-Wformat=2" \
+    -Winline \
+    -Wlogical-op \
     -Wmissing-declarations \
-    -Wredundant-decls \
+    -Wmissing-include-dirs \
     -Wmissing-prototypes \
     -Wnested-externs \
+    -Wnull-dereference \
+    -Wpacked \
+    -Wpedantic \
     -Wpointer-arith \
+    -Wredundant-decls \
     -Wshadow \
+    -Wstack-protector \
     -Wstrict-prototypes \
+    -Wswitch-default \
+    -Wswitch-enum \
+    -Wtrampolines \
+    -Wundef \
+    -Wunused \
+    -Wunused-macros \
     -Wwrite-strings \
-    -Wswitch \
-    -Wmissing-field-initializers \
-    -pedantic-errors
+    -fdelete-null-pointer-checks \
+    -s \
+    "-std=gnu99"
 )
 
 runc () {
     handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
     clang-format -i "$1" || return
+    pin=$PWD
     cp "$1" "$WD/build/$handle.c"
     (
         cd "$WD/build" || return
-        clang "${FLAGS[@]}" "$handle.c" -o "$WD/bin/$handle" || return
-        "$WD/bin/$handle"
+        gcc "${FLAGS[@]}" "$handle.c" -o "$WD/bin/$handle" || return
+        cd "$pin" || return
+        if [ -z "$2" ]; then
+            "$WD/bin/$handle"
+        else
+            "$WD/bin/$handle" "$2"
+        fi
     )
 }
 
