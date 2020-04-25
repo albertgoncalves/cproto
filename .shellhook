@@ -40,7 +40,6 @@ export FLAGS=(
     -Wshadow \
     -Wstack-protector \
     -Wstrict-prototypes \
-    -Wswitch-default \
     -Wswitch-enum \
     -Wtrampolines \
     -Wundef \
