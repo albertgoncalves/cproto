@@ -3,9 +3,13 @@
 #include <stdlib.h>
 
 #define MAX_FILE_BUFFER_SIZE 128
-#define TOKEN_BUFFER_SIZE    6
-#define TOKEN_BUFFER_LIMIT   5
-#define TOKENS_SIZE          8
+
+#define TOKENS_SIZE         8
+#define STRING_BUFFER_SIZE  16
+#define STRING_BUFFER_LIMIT 15
+
+#define IS_WHITESPACE(c) (c < '!')
+#define IS_CHAR(c)       (('A' <= c) && (c <= 'z'))
 
 typedef enum {
     EMPTY = 0,
@@ -16,8 +20,13 @@ typedef enum {
 
 typedef struct {
     token_type_t type;
-    char         buffer[TOKEN_BUFFER_SIZE];
+    char*        string;
 } token_t;
+
+typedef struct {
+    token_t items[TOKENS_SIZE];
+    char    strings[STRING_BUFFER_SIZE];
+} tokens_t;
 
 static char* get_buffer(FILE* file) {
     fseek(file, 0, SEEK_END);
@@ -34,41 +43,52 @@ static char* get_buffer(FILE* file) {
     return buffer;
 }
 
-static token_t* get_tokens(const char* buffer) {
-    token_t* tokens = calloc(sizeof(token_t), TOKENS_SIZE);
+static tokens_t* get_tokens(const char* buffer) {
+    tokens_t* tokens = malloc(sizeof(tokens_t));
     if (tokens == NULL) {
         exit(EXIT_FAILURE);
     }
-    uint8_t b_index = 0;
-    uint8_t t_index = 0;
-    for (char c = buffer[b_index]; c != 0;) {
-        if (TOKENS_SIZE <= t_index) {
+    uint8_t b = 0;
+    uint8_t t = 0;
+    uint8_t s = 0;
+    for (char c = buffer[b]; c != 0;) {
+        if (TOKENS_SIZE <= t) {
             exit(EXIT_FAILURE);
         }
-        if (c < '!') {
-            tokens[t_index++].type = SPACE;
-            c = buffer[++b_index];
-        } else if (('A' <= c) && (c <= 'z')) {
-            for (uint8_t s_index = 0;; ++s_index) {
-                if (TOKEN_BUFFER_LIMIT <= s_index) {
+        if (IS_WHITESPACE(c)) {
+            if ((b == 0) || (!IS_WHITESPACE(buffer[b - 1]))) {
+                tokens->items[t++].type = SPACE;
+            }
+            c = buffer[++b];
+        } else if (IS_CHAR(c)) {
+            if (STRING_BUFFER_LIMIT <= s) {
+                exit(EXIT_FAILURE);
+            }
+            tokens->items[t].type = WORD;
+            tokens->items[t++].string = &tokens->strings[s];
+            tokens->strings[s++] = c;
+            c = buffer[++b];
+            while (IS_CHAR(c)) {
+                if (STRING_BUFFER_LIMIT <= s) {
                     exit(EXIT_FAILURE);
                 }
-                tokens[t_index].type = WORD;
-                tokens[t_index].buffer[s_index] = c;
-                c = buffer[++b_index];
-                if (c == 0) {
-                    return tokens;
-                }
-                if (!(('A' <= c) && (c <= 'z'))) {
-                    ++t_index;
-                    break;
-                }
+                tokens->strings[s++] = c;
+                c = buffer[++b];
             }
+            tokens->strings[s++] = 0;
         } else {
-            tokens[t_index].type = OTHER;
-            tokens[t_index++].buffer[0] = c;
-            c = buffer[++b_index];
+            if (STRING_BUFFER_LIMIT <= s) {
+                exit(EXIT_FAILURE);
+            }
+            tokens->items[t].type = OTHER;
+            tokens->items[t++].string = &tokens->strings[s];
+            tokens->strings[s++] = c;
+            tokens->strings[s++] = 0;
+            c = buffer[++b];
         }
+    }
+    for (; t < TOKENS_SIZE; ++t) {
+        tokens->items[t].type = EMPTY;
     }
     return tokens;
 }
@@ -83,10 +103,10 @@ int main(int argv, char** argc) {
     }
     char* buffer = get_buffer(file);
     fclose(file);
-    token_t* tokens = get_tokens(buffer);
+    tokens_t* tokens = get_tokens(buffer);
     free(buffer);
     for (uint8_t i = 0; i < TOKENS_SIZE; ++i) {
-        token_t* token = &tokens[i];
+        token_t* token = &tokens->items[i];
         switch (token->type) {
         case EMPTY: {
             printf("(%2u) _\n", i);
@@ -97,11 +117,11 @@ int main(int argv, char** argc) {
             break;
         }
         case WORD: {
-            printf("(%2u) WORD  : \"%s\"\n", i, token->buffer);
+            printf("(%2u) WORD  : \"%s\"\n", i, token->string);
             break;
         }
         case OTHER: {
-            printf("(%2u) OTHER : \"%s\"\n", i, token->buffer);
+            printf("(%2u) OTHER : \"%s\"\n", i, token->string);
             break;
         }
         }
