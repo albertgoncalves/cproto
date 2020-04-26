@@ -8,8 +8,8 @@
 #define STRING_BUFFER_SIZE  16
 #define STRING_BUFFER_LIMIT 15
 
-#define IS_WHITESPACE(c) (c < '!')
-#define IS_CHAR(c)       (('A' <= c) && (c <= 'z'))
+#define IS_SPACE(c) (c < '!')
+#define IS_ALPHA(c) (('A' <= c) && (c <= 'z'))
 
 typedef enum {
     EMPTY = 0,
@@ -48,47 +48,47 @@ static tokens_t* get_tokens(const char* buffer) {
     if (tokens == NULL) {
         exit(EXIT_FAILURE);
     }
-    uint8_t b = 0;
-    uint8_t t = 0;
-    uint8_t s = 0;
-    for (char c = buffer[b]; c != 0;) {
-        if (TOKENS_SIZE <= t) {
+    uint8_t i_b = 0;
+    uint8_t i_t = 0;
+    uint8_t i_s = 0;
+    for (char c = buffer[i_b]; c != 0;) {
+        if (TOKENS_SIZE <= i_t) {
             exit(EXIT_FAILURE);
         }
-        if (IS_WHITESPACE(c)) {
-            if ((b == 0) || (!IS_WHITESPACE(buffer[b - 1]))) {
-                tokens->items[t++].type = SPACE;
+        if (IS_SPACE(c)) {
+            if ((i_b == 0) || (!IS_SPACE(buffer[i_b - 1]))) {
+                tokens->items[i_t++].type = SPACE;
             }
-            c = buffer[++b];
-        } else if (IS_CHAR(c)) {
-            if (STRING_BUFFER_LIMIT <= s) {
+            c = buffer[++i_b];
+        } else if (IS_ALPHA(c)) {
+            if (STRING_BUFFER_LIMIT <= i_s) {
                 exit(EXIT_FAILURE);
             }
-            tokens->items[t].type = WORD;
-            tokens->items[t++].string = &tokens->strings[s];
-            tokens->strings[s++] = c;
-            c = buffer[++b];
-            while (IS_CHAR(c)) {
-                if (STRING_BUFFER_LIMIT <= s) {
+            tokens->items[i_t].type = WORD;
+            tokens->items[i_t++].string = &tokens->strings[i_s];
+            tokens->strings[i_s++] = c;
+            c = buffer[++i_b];
+            while (IS_ALPHA(c)) {
+                if (STRING_BUFFER_LIMIT <= i_s) {
                     exit(EXIT_FAILURE);
                 }
-                tokens->strings[s++] = c;
-                c = buffer[++b];
+                tokens->strings[i_s++] = c;
+                c = buffer[++i_b];
             }
-            tokens->strings[s++] = 0;
+            tokens->strings[i_s++] = 0;
         } else {
-            if (STRING_BUFFER_LIMIT <= s) {
+            if (STRING_BUFFER_LIMIT <= i_s) {
                 exit(EXIT_FAILURE);
             }
-            tokens->items[t].type = OTHER;
-            tokens->items[t++].string = &tokens->strings[s];
-            tokens->strings[s++] = c;
-            tokens->strings[s++] = 0;
-            c = buffer[++b];
+            tokens->items[i_t].type = OTHER;
+            tokens->items[i_t++].string = &tokens->strings[i_s];
+            tokens->strings[i_s++] = c;
+            tokens->strings[i_s++] = 0;
+            c = buffer[++i_b];
         }
     }
-    for (; t < TOKENS_SIZE; ++t) {
-        tokens->items[t].type = EMPTY;
+    for (; i_t < TOKENS_SIZE; ++i_t) {
+        tokens->items[i_t].type = EMPTY;
     }
     return tokens;
 }
