@@ -39,7 +39,7 @@ static char* get_buffer(FILE* file) {
     if (fread(buffer, sizeof(char), size, file) != size) {
         exit(EXIT_FAILURE);
     }
-    buffer[size] = 0;
+    buffer[size] = '\0';
     return buffer;
 }
 
@@ -51,7 +51,7 @@ static tokens_t* get_tokens(const char* buffer) {
     uint8_t i_b = 0;
     uint8_t i_t = 0;
     uint8_t i_s = 0;
-    for (char c = buffer[i_b]; c != 0;) {
+    for (char c = buffer[i_b]; c != '\0';) {
         if (TOKENS_SIZE <= i_t) {
             exit(EXIT_FAILURE);
         }
@@ -75,7 +75,7 @@ static tokens_t* get_tokens(const char* buffer) {
                 tokens->strings[i_s++] = c;
                 c = buffer[++i_b];
             }
-            tokens->strings[i_s++] = 0;
+            tokens->strings[i_s++] = '\0';
         } else {
             if (STRING_BUFFER_LIMIT <= i_s) {
                 exit(EXIT_FAILURE);
@@ -83,7 +83,7 @@ static tokens_t* get_tokens(const char* buffer) {
             tokens->items[i_t].type = OTHER;
             tokens->items[i_t++].string = &tokens->strings[i_s];
             tokens->strings[i_s++] = c;
-            tokens->strings[i_s++] = 0;
+            tokens->strings[i_s++] = '\0';
             c = buffer[++i_b];
         }
     }
