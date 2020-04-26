@@ -47,15 +47,15 @@ static token_t* get_tokens(const char* buffer) {
         }
         if (c < '!') {
             tokens[t_index++].type = SPACE;
-            c                      = buffer[++b_index];
+            c = buffer[++b_index];
         } else if (('A' <= c) && (c <= 'z')) {
             for (uint8_t s_index = 0;; ++s_index) {
                 if (TOKEN_BUFFER_LIMIT <= s_index) {
                     exit(EXIT_FAILURE);
                 }
-                tokens[t_index].type            = WORD;
+                tokens[t_index].type = WORD;
                 tokens[t_index].buffer[s_index] = c;
-                c                               = buffer[++b_index];
+                c = buffer[++b_index];
                 if (c == 0) {
                     return tokens;
                 }
@@ -65,9 +65,9 @@ static token_t* get_tokens(const char* buffer) {
                 }
             }
         } else {
-            tokens[t_index].type        = OTHER;
+            tokens[t_index].type = OTHER;
             tokens[t_index++].buffer[0] = c;
-            c                           = buffer[++b_index];
+            c = buffer[++b_index];
         }
     }
     return tokens;

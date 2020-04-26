@@ -52,8 +52,8 @@ static error_t push(linked_list_t* list, const T value) {
         return true;
     }
     next_node->value = value;
-    next_node->next  = list->head;
-    list->head       = next_node;
+    next_node->next = list->head;
+    list->head = next_node;
     return false;
 }
 
@@ -64,9 +64,9 @@ static T_error_t pop(linked_list_t* list) {
         return result;
     }
     node_t* current_node = list->head;
-    list->head           = current_node->next;
-    result.value         = current_node->value;
-    result.error         = false;
+    list->head = current_node->next;
+    result.value = current_node->value;
+    result.error = false;
     free(current_node);
     return result;
 }
@@ -77,14 +77,14 @@ static T_error_t pop_at(linked_list_t* list, const size_t index) {
         result.error = true;
         return result;
     }
-    node_t* prev_node    = NULL;
+    node_t* prev_node = NULL;
     node_t* current_node = list->head;
     for (size_t i = 0; i < index; ++i) {
         if (current_node->next == NULL) {
             result.error = true;
             return result;
         }
-        prev_node    = current_node;
+        prev_node = current_node;
         current_node = current_node->next;
     }
     if (prev_node == NULL) {

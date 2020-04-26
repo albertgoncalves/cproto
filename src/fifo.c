@@ -53,13 +53,13 @@ static error_t push(fifo_queue_t* queue, const T value) {
         return true;
     }
     next_node->value = value;
-    next_node->next  = NULL;
+    next_node->next = NULL;
     if ((queue->first != NULL) && (queue->last == NULL)) {
         queue->first->next = next_node;
-        queue->last        = next_node;
+        queue->last = next_node;
     } else if (queue->last != NULL) {
         queue->last->next = next_node;
-        queue->last       = next_node;
+        queue->last = next_node;
     } else {
         queue->first = next_node;
     }
@@ -73,7 +73,7 @@ static T_error_t pop(fifo_queue_t* queue) {
         return result;
     }
     node_t* current_node = queue->first;
-    queue->first         = current_node->next;
+    queue->first = current_node->next;
     if (queue->first == queue->last) {
         queue->last = NULL;
     }
@@ -95,7 +95,7 @@ static void destroy(fifo_queue_t* queue) {
         current_node = next_node;
     }
     queue->first = NULL;
-    queue->last  = NULL;
+    queue->last = NULL;
 }
 
 static void print_queue(const fifo_queue_t* queue) {
