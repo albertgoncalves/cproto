@@ -11,7 +11,7 @@ done
 export FLAGS=(
     -fdelete-null-pointer-checks \
     -fshort-enums \
-    -Os \
+    -O1 \
     "-std=gnu99" \
     -Wall \
     -Wbad-function-cast \
@@ -58,7 +58,7 @@ runc () {
     cp "$1" "$WD/build/$handle.c"
     (
         cd "$WD/build" || return
-        gcc "${FLAGS[@]}" "$handle.c" -o "$WD/bin/$handle" || return
+        gcc -g "${FLAGS[@]}" "$handle.c" -o "$WD/bin/$handle" || return
         cd "$pin" || return
         if [ -z "$2" ]; then
             "$WD/bin/$handle"

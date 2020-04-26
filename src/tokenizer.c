@@ -43,6 +43,15 @@ static char* get_buffer(FILE* file) {
     return buffer;
 }
 
+#define SET_NEXT_CHAR c = buffer[++i_b]
+#define SET_POINTER   tokens->items[i_t].string = &tokens->strings[i_s]
+#define SET_CHAR(c)   tokens->strings[i_s++] = c
+#define SET_TYPE(t)   tokens->items[i_t++].type = t
+#define EXIT_IF_STRING_BUFFER_OVERFLOW \
+    if (STRING_BUFFER_LIMIT <= i_s) {  \
+        exit(EXIT_FAILURE);            \
+    }
+
 static tokens_t* get_tokens(const char* buffer) {
     tokens_t* tokens = malloc(sizeof(tokens_t));
     if (tokens == NULL) {
@@ -52,39 +61,34 @@ static tokens_t* get_tokens(const char* buffer) {
     uint8_t i_t = 0;
     uint8_t i_s = 0;
     for (char c = buffer[i_b]; c != '\0';) {
-        if (TOKENS_SIZE <= i_t) {
+        if (TOKENS_SIZE == i_t) {
             exit(EXIT_FAILURE);
         }
         if (IS_SPACE(c)) {
             if ((i_b == 0) || (!IS_SPACE(buffer[i_b - 1]))) {
-                tokens->items[i_t++].type = SPACE;
+                SET_TYPE(SPACE);
             }
-            c = buffer[++i_b];
+            SET_NEXT_CHAR;
         } else if (IS_ALPHA(c)) {
-            if (STRING_BUFFER_LIMIT <= i_s) {
-                exit(EXIT_FAILURE);
-            }
-            tokens->items[i_t].type = WORD;
-            tokens->items[i_t++].string = &tokens->strings[i_s];
-            tokens->strings[i_s++] = c;
-            c = buffer[++i_b];
+            /* NOTE: There must be room for the next character *and* '\0'! */
+            EXIT_IF_STRING_BUFFER_OVERFLOW;
+            SET_POINTER;
+            SET_TYPE(WORD);
+            SET_CHAR(c);
+            SET_NEXT_CHAR;
             while (IS_ALPHA(c)) {
-                if (STRING_BUFFER_LIMIT <= i_s) {
-                    exit(EXIT_FAILURE);
-                }
-                tokens->strings[i_s++] = c;
-                c = buffer[++i_b];
+                EXIT_IF_STRING_BUFFER_OVERFLOW;
+                SET_CHAR(c);
+                SET_NEXT_CHAR;
             }
-            tokens->strings[i_s++] = '\0';
+            SET_CHAR('\0');
         } else {
-            if (STRING_BUFFER_LIMIT <= i_s) {
-                exit(EXIT_FAILURE);
-            }
-            tokens->items[i_t].type = OTHER;
-            tokens->items[i_t++].string = &tokens->strings[i_s];
-            tokens->strings[i_s++] = c;
-            tokens->strings[i_s++] = '\0';
-            c = buffer[++i_b];
+            EXIT_IF_STRING_BUFFER_OVERFLOW;
+            SET_POINTER;
+            SET_TYPE(OTHER);
+            SET_CHAR(c);
+            SET_CHAR('\0');
+            SET_NEXT_CHAR;
         }
     }
     for (; i_t < TOKENS_SIZE; ++i_t) {
@@ -92,6 +96,12 @@ static tokens_t* get_tokens(const char* buffer) {
     }
     return tokens;
 }
+
+#undef SET_NEXT_CHAR
+#undef SET_POINTER
+#undef SET_CHAR
+#undef SET_TYPE
+#undef EXIT_IF_STRING_BUFFER_OVERFLOW
 
 int main(int argv, char** argc) {
     if (argv == 1) {
