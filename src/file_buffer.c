@@ -88,22 +88,22 @@ int main(int argv, char** argc) {
     for (uint8_t i = 0; i < TOKENS_SIZE; ++i) {
         token_t* token = &tokens[i];
         switch (token->type) {
-            case EMPTY: {
-                printf("(%2u) _\n", i);
-                break;
-            }
-            case SPACE: {
-                printf("(%2u) SPACE\n", i);
-                break;
-            }
-            case WORD: {
-                printf("(%2u) WORD  : \"%s\"\n", i, token->buffer);
-                break;
-            }
-            case OTHER: {
-                printf("(%2u) OTHER : \"%s\"\n", i, token->buffer);
-                break;
-            }
+        case EMPTY: {
+            printf("(%2u) _\n", i);
+            break;
+        }
+        case SPACE: {
+            printf("(%2u) SPACE\n", i);
+            break;
+        }
+        case WORD: {
+            printf("(%2u) WORD  : \"%s\"\n", i, token->buffer);
+            break;
+        }
+        case OTHER: {
+            printf("(%2u) OTHER : \"%s\"\n", i, token->buffer);
+            break;
+        }
         }
     }
     free(tokens);
