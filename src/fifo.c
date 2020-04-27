@@ -23,7 +23,7 @@
                 CLOSE,                                      \
                 BOLD_PURPLE,                                \
                 CLOSE);                                     \
-        exit(1);                                            \
+        exit(EXIT_FAILURE);                                 \
     }
 
 typedef uint8_t T;
@@ -132,5 +132,5 @@ int main(void) {
     EXIT_IF(push(&queue, (T)12));
     print_queue(&queue);
     destroy(&queue);
-    return 0;
+    return EXIT_SUCCESS;
 }

@@ -23,7 +23,7 @@
                 CLOSE,                                      \
                 BOLD_PURPLE,                                \
                 CLOSE);                                     \
-        exit(1);                                            \
+        exit(EXIT_FAILURE);                                 \
     }
 
 typedef uint8_t T;
@@ -151,5 +151,5 @@ int main(void) {
         print_list(&list);
     }
     destroy(&list);
-    return 0;
+    return EXIT_SUCCESS;
 }
