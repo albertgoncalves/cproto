@@ -43,10 +43,10 @@ static char* get_buffer(FILE* file) {
     return buffer;
 }
 
-#define SET_NEXT_CHAR c = buffer[++i_b]
-#define SET_POINTER   tokens->items[i_t].string = &tokens->strings[i_s]
-#define SET_CHAR(c)   tokens->strings[i_s++] = c
-#define SET_TYPE(t)   tokens->items[i_t++].type = t
+#define INCREMENT_BUFFER c = buffer[++i_b]
+#define SET_POINTER      tokens->items[i_t].string = &tokens->strings[i_s]
+#define SET_CHAR(c)      tokens->strings[i_s++] = c
+#define SET_TYPE(t)      tokens->items[i_t++].type = t
 #define EXIT_IF_STRING_BUFFER_OVERFLOW \
     if (STRING_BUFFER_LIMIT <= i_s) {  \
         exit(EXIT_FAILURE);            \
@@ -68,18 +68,18 @@ static tokens_t* get_tokens(const char* buffer) {
             if ((i_b == 0) || (!IS_SPACE(buffer[i_b - 1]))) {
                 SET_TYPE(SPACE);
             }
-            SET_NEXT_CHAR;
+            INCREMENT_BUFFER;
         } else if (IS_ALPHA(c)) {
             /* NOTE: There must be room for the next character *and* '\0'! */
             EXIT_IF_STRING_BUFFER_OVERFLOW;
             SET_POINTER;
             SET_TYPE(WORD);
             SET_CHAR(c);
-            SET_NEXT_CHAR;
+            INCREMENT_BUFFER;
             while (IS_ALPHA(c)) {
                 EXIT_IF_STRING_BUFFER_OVERFLOW;
                 SET_CHAR(c);
-                SET_NEXT_CHAR;
+                INCREMENT_BUFFER;
             }
             SET_CHAR('\0');
         } else {
@@ -88,7 +88,7 @@ static tokens_t* get_tokens(const char* buffer) {
             SET_TYPE(OTHER);
             SET_CHAR(c);
             SET_CHAR('\0');
-            SET_NEXT_CHAR;
+            INCREMENT_BUFFER;
         }
     }
     for (; i_t < TOKENS_SIZE; ++i_t) {
@@ -97,7 +97,7 @@ static tokens_t* get_tokens(const char* buffer) {
     return tokens;
 }
 
-#undef SET_NEXT_CHAR
+#undef INCREMENT_BUFFER
 #undef SET_POINTER
 #undef SET_CHAR
 #undef SET_TYPE
