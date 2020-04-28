@@ -9,45 +9,45 @@ for x in "$WD/bin" "$WD/build"; do
 done
 
 export FLAGS=(
-    -fdelete-null-pointer-checks \
-    -fshort-enums \
-    -O1 \
-    "-std=gnu99" \
-    -Wall \
-    -Wbad-function-cast \
-    -Wcast-align \
-    "-Wcast-align=strict" \
-    -Wcast-qual \
-    -Wconversion \
-    -Wdate-time \
-    -Wdouble-promotion \
-    -Wduplicated-branches \
-    -Wduplicated-cond \
-    -Werror \
-    -Wextra \
-    -Wfatal-errors \
-    -Wfloat-equal \
-    "-Wformat=2" \
-    -Wformat-signedness \
-    -Winline \
-    -Wlogical-op \
-    -Wmissing-declarations \
-    -Wmissing-include-dirs \
-    -Wmissing-prototypes \
-    -Wnested-externs \
-    -Wnull-dereference \
-    -Wpacked \
-    -Wpedantic \
-    -Wpointer-arith \
-    -Wredundant-decls \
-    -Wshadow \
-    -Wstack-protector \
-    -Wstrict-prototypes \
-    -Wswitch-enum \
-    -Wtrampolines \
-    -Wundef \
-    -Wunused \
-    -Wunused-macros \
+    -fdelete-null-pointer-checks
+    -fshort-enums
+    -O1
+    "-std=gnu99"
+    -Wall
+    -Wbad-function-cast
+    -Wcast-align
+    "-Wcast-align=strict"
+    -Wcast-qual
+    -Wconversion
+    -Wdate-time
+    -Wdouble-promotion
+    -Wduplicated-branches
+    -Wduplicated-cond
+    -Werror
+    -Wextra
+    -Wfatal-errors
+    -Wfloat-equal
+    "-Wformat=2"
+    -Wformat-signedness
+    -Winline
+    -Wlogical-op
+    -Wmissing-declarations
+    -Wmissing-include-dirs
+    -Wmissing-prototypes
+    -Wnested-externs
+    -Wnull-dereference
+    -Wpacked
+    -Wpedantic
+    -Wpointer-arith
+    -Wredundant-decls
+    -Wshadow
+    -Wstack-protector
+    -Wstrict-prototypes
+    -Wswitch-enum
+    -Wtrampolines
+    -Wundef
+    -Wunused
+    -Wunused-macros
     -Wwrite-strings
 )
 
