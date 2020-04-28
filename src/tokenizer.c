@@ -28,19 +28,17 @@ typedef struct {
     char    strings[STRING_BUFFER_SIZE];
 } tokens_t;
 
-static char* get_buffer(FILE* file) {
+static void set_buffer(char* buffer, FILE* file) {
     fseek(file, 0, SEEK_END);
     size_t size = (size_t)ftell(file);
     if (MAX_FILE_BUFFER_SIZE <= size) {
         exit(EXIT_FAILURE);
     }
     rewind(file);
-    char* buffer = malloc((sizeof(char) * size) + 1);
     if (fread(buffer, sizeof(char), size, file) != size) {
         exit(EXIT_FAILURE);
     }
     buffer[size] = '\0';
-    return buffer;
 }
 
 #define INCREMENT_BUFFER c = buffer[++i_b]
@@ -52,11 +50,7 @@ static char* get_buffer(FILE* file) {
         exit(EXIT_FAILURE);            \
     }
 
-static tokens_t* get_tokens(const char* buffer) {
-    tokens_t* tokens = malloc(sizeof(tokens_t));
-    if (tokens == NULL) {
-        exit(EXIT_FAILURE);
-    }
+static void set_tokens(tokens_t* tokens, const char* buffer) {
     uint8_t i_b = 0;
     uint8_t i_t = 0;
     uint8_t i_s = 0;
@@ -94,7 +88,6 @@ static tokens_t* get_tokens(const char* buffer) {
     for (; i_t < TOKENS_SIZE; ++i_t) {
         tokens->items[i_t].type = EMPTY;
     }
-    return tokens;
 }
 
 #undef INCREMENT_BUFFER
@@ -111,10 +104,14 @@ int main(int argv, char** argc) {
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    char* buffer = get_buffer(file);
-    fclose(file);
-    tokens_t* tokens = get_tokens(buffer);
-    free(buffer);
+    void* pool = malloc(sizeof(tokens_t) + MAX_FILE_BUFFER_SIZE);
+    if (pool == NULL) {
+        return EXIT_FAILURE;
+    }
+    char*     buffer = (char*)pool + sizeof(tokens_t);
+    tokens_t* tokens = (tokens_t*)pool;
+    set_buffer(buffer, file);
+    set_tokens(tokens, buffer);
     for (uint8_t i = 0; i < TOKENS_SIZE; ++i) {
         token_t* token = &tokens->items[i];
         switch (token->type) {
@@ -136,6 +133,7 @@ int main(int argv, char** argc) {
         }
         }
     }
-    free(tokens);
+    fclose(file);
+    free(pool);
     return EXIT_SUCCESS;
 }
