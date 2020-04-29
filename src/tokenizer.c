@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10,6 +9,8 @@
 
 #define IS_SPACE(c) (c < '!')
 #define IS_ALPHA(c) (('A' <= c) && (c <= 'z'))
+
+typedef unsigned char u8;
 
 typedef enum {
     EMPTY = 0,
@@ -27,6 +28,11 @@ typedef struct {
     token_t items[TOKENS_SIZE];
     char    strings[STRING_BUFFER_SIZE];
 } tokens_t;
+
+typedef struct {
+    char     buffer[MAX_FILE_BUFFER_SIZE];
+    tokens_t tokens;
+} memory_t;
 
 static void set_buffer(char* buffer, FILE* file) {
     fseek(file, 0, SEEK_END);
@@ -51,9 +57,9 @@ static void set_buffer(char* buffer, FILE* file) {
     }
 
 static void set_tokens(tokens_t* tokens, const char* buffer) {
-    uint8_t i_b = 0;
-    uint8_t i_t = 0;
-    uint8_t i_s = 0;
+    u8 i_b = 0;
+    u8 i_t = 0;
+    u8 i_s = 0;
     for (char c = buffer[i_b]; c != '\0';) {
         if (TOKENS_SIZE == i_t) {
             exit(EXIT_FAILURE);
@@ -104,15 +110,15 @@ int main(int argv, char** argc) {
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    void* pool = malloc(sizeof(tokens_t) + MAX_FILE_BUFFER_SIZE);
-    if (pool == NULL) {
+    memory_t* memory = malloc(sizeof(memory_t));
+    if (memory == NULL) {
         return EXIT_FAILURE;
     }
-    char*     buffer = (char*)pool + sizeof(tokens_t);
-    tokens_t* tokens = (tokens_t*)pool;
+    char*     buffer = memory->buffer;
+    tokens_t* tokens = &memory->tokens;
     set_buffer(buffer, file);
     set_tokens(tokens, buffer);
-    for (uint8_t i = 0; i < TOKENS_SIZE; ++i) {
+    for (u8 i = 0; i < TOKENS_SIZE; ++i) {
         token_t* token = &tokens->items[i];
         switch (token->type) {
         case EMPTY: {
@@ -134,6 +140,6 @@ int main(int argv, char** argc) {
         }
     }
     fclose(file);
-    free(pool);
+    free(memory);
     return EXIT_SUCCESS;
 }
