@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-alias open="sxiv"
-
 export WD=$PWD
 
 for x in bin build out; do
@@ -70,4 +68,9 @@ runc () {
     )
 }
 
+open () {
+    sxiv "$1" > /dev/null 2>&1
+}
+
 export -f runc
+export -f open
