@@ -7,7 +7,7 @@ typedef unsigned int   u32;
 
 typedef float f32;
 
-typedef FILE FileHandle;
+typedef FILE fileHandle;
 
 #define WIDTH  512
 #define HEIGHT 512
@@ -75,7 +75,7 @@ static void set_pixels(u8* pixels) {
 }
 
 int main(void) {
-    FileHandle* file = fopen(FILEPATH, "wb");
+    fileHandle* file = fopen(FILEPATH, "wb");
     if (file == NULL) {
         return EXIT_FAILURE;
     }
