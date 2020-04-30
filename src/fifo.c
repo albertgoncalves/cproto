@@ -1,5 +1,3 @@
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,8 +24,11 @@
         exit(EXIT_FAILURE);                                 \
     }
 
-typedef uint8_t T;
-typedef bool    error_t;
+#define FALSE 0
+#define TRUE  1
+
+typedef unsigned char T;
+typedef unsigned char error_t;
 
 typedef struct node {
     T            value;
@@ -46,11 +47,11 @@ typedef struct {
 
 static error_t push(fifo_queue_t* queue, const T value) {
     if (queue == NULL) {
-        return true;
+        return TRUE;
     }
     node_t* next_node = malloc(sizeof(node_t));
     if (next_node == NULL) {
-        return true;
+        return TRUE;
     }
     next_node->value = value;
     next_node->next = NULL;
@@ -63,13 +64,13 @@ static error_t push(fifo_queue_t* queue, const T value) {
     } else {
         queue->first = next_node;
     }
-    return false;
+    return FALSE;
 }
 
 static T_error_t pop(fifo_queue_t* queue) {
     T_error_t result;
     if (queue == NULL || queue->first == NULL) {
-        result.error = true;
+        result.error = TRUE;
         return result;
     }
     node_t* current_node = queue->first;
@@ -78,7 +79,7 @@ static T_error_t pop(fifo_queue_t* queue) {
         queue->last = NULL;
     }
     result.value = current_node->value;
-    result.error = false;
+    result.error = FALSE;
     free(current_node);
     return result;
 }

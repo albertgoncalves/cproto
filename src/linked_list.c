@@ -1,5 +1,3 @@
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,8 +24,11 @@
         exit(EXIT_FAILURE);                                 \
     }
 
-typedef uint8_t T;
-typedef bool    error_t;
+#define FALSE 0
+#define TRUE  1
+
+typedef unsigned char T;
+typedef unsigned char error_t;
 
 typedef struct node {
     T            value;
@@ -45,28 +46,28 @@ typedef struct {
 
 static error_t push(linked_list_t* list, const T value) {
     if (list == NULL) {
-        return true;
+        return TRUE;
     }
     node_t* next_node = malloc(sizeof(node_t));
     if (next_node == NULL) {
-        return true;
+        return TRUE;
     }
     next_node->value = value;
     next_node->next = list->head;
     list->head = next_node;
-    return false;
+    return FALSE;
 }
 
 static T_error_t pop(linked_list_t* list) {
     T_error_t result;
     if ((list == NULL) || (list->head == NULL)) {
-        result.error = true;
+        result.error = TRUE;
         return result;
     }
     node_t* current_node = list->head;
     list->head = current_node->next;
     result.value = current_node->value;
-    result.error = false;
+    result.error = FALSE;
     free(current_node);
     return result;
 }
@@ -74,14 +75,14 @@ static T_error_t pop(linked_list_t* list) {
 static T_error_t pop_at(linked_list_t* list, const size_t index) {
     T_error_t result;
     if ((list == NULL) || (list->head == NULL)) {
-        result.error = true;
+        result.error = TRUE;
         return result;
     }
     node_t* prev_node = NULL;
     node_t* current_node = list->head;
     for (size_t i = 0; i < index; ++i) {
         if (current_node->next == NULL) {
-            result.error = true;
+            result.error = TRUE;
             return result;
         }
         prev_node = current_node;
@@ -93,7 +94,7 @@ static T_error_t pop_at(linked_list_t* list, const size_t index) {
         prev_node->next = current_node->next;
     }
     result.value = current_node->value;
-    result.error = false;
+    result.error = FALSE;
     free(current_node);
     return result;
 }
