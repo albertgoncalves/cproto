@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef FILE FileHandle;
-
 typedef unsigned char  u8;
 typedef unsigned short u16;
 typedef unsigned int   u32;
 
 typedef float f32;
+
+typedef FILE FileHandle;
 
 #define WIDTH  512
 #define HEIGHT 512
@@ -17,7 +17,7 @@ typedef float f32;
 #define FLOAT_HEIGHT         512.0f
 #define FLOAT_HALF_PERIMETER 1024.0f
 
-#define CLAMP 255.0f
+#define SCALE 255.0f
 
 #define FILEPATH "out/hello.bmp"
 
@@ -62,10 +62,10 @@ static void set_dib_header(dibHeader* header) {
 static void set_pixels(u8* pixels) {
     u32 i = 0;
     for (f32 y = 0.0f; y < FLOAT_HEIGHT; ++y) {
-        f32 red = (y / FLOAT_HEIGHT) * CLAMP;
+        f32 red = (y / FLOAT_HEIGHT) * SCALE;
         for (f32 x = 0.0f; x < FLOAT_WIDTH; ++x) {
-            f32 green = (x / FLOAT_WIDTH) * CLAMP;
-            f32 blue = ((x + y) / FLOAT_HALF_PERIMETER) * CLAMP;
+            f32 green = (x / FLOAT_WIDTH) * SCALE;
+            f32 blue = ((x + y) / FLOAT_HALF_PERIMETER) * SCALE;
             pixels[i] = (u8)blue;
             pixels[i + 1] = (u8)green;
             pixels[i + 2] = (u8)red;
