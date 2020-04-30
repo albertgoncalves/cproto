@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+alias open="sxiv"
+
 export WD=$PWD
 
-for x in "$WD/bin" "$WD/build"; do
-    if [ ! -d "$x" ]; then
-        mkdir "$x"
+for x in bin build out; do
+    if [ ! -d "$WD/$x" ]; then
+        mkdir "$WD/$x"
     fi
 done
 

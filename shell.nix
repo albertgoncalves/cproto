@@ -1,9 +1,11 @@
 with import <nixpkgs> {};
 mkShell{
     buildInputs = [
-        gdb
         clang_10
+        gdb
+        glibcLocales
         shellcheck
+        sxiv
         valgrind
     ];
     shellHook = ''
