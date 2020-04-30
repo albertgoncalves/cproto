@@ -17,7 +17,7 @@ typedef FILE fileHandle;
 #define FLOAT_HEIGHT         512.0f
 #define FLOAT_HALF_PERIMETER 1024.0f
 
-#define SCALE 255.0f
+#define SCALE 256.0f
 
 #define FILEPATH "out/hello.bmp"
 
