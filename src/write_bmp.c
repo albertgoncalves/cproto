@@ -38,6 +38,7 @@ typedef struct {
     u16 bits_per_pixel;
 } dibHeader;
 
+#pragma pack(1)
 typedef struct {
     bmpHeader bmp_header;
     dibHeader dib_header;
