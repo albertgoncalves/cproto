@@ -79,18 +79,18 @@ int main(void) {
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    bmpFile* bmp = calloc(sizeof(bmpFile), 1);
-    if (bmp == NULL) {
+    bmpFile* bmp_buffer = calloc(sizeof(bmpFile), 1);
+    if (bmp_buffer == NULL) {
         return EXIT_FAILURE;
     }
-    set_bmp_header(&bmp->bmp_header);
-    set_dib_header(&bmp->dib_header);
-    set_pixels(bmp->pixels);
+    set_bmp_header(&bmp_buffer->bmp_header);
+    set_dib_header(&bmp_buffer->dib_header);
+    set_pixels(bmp_buffer->pixels);
     u32 filesize = sizeof(bmpFile);
-    if (fwrite(bmp, 1, filesize, file) != filesize) {
+    if (fwrite(bmp_buffer, 1, filesize, file) != filesize) {
         return EXIT_FAILURE;
     }
     fclose(file);
-    free(bmp);
+    free(bmp_buffer);
     return EXIT_SUCCESS;
 }
