@@ -14,7 +14,6 @@ export FLAGS=(
     -O1
     "-std=gnu99"
     -Wall
-    -Wbad-function-cast
     -Wcast-align
     "-Wcast-align=strict"
     -Wcast-qual
