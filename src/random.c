@@ -8,9 +8,9 @@ typedef float f32;
 
 typedef struct timeval timeValue;
 
-#define U32_MAX_FLOAT 4294967295.0f
-
 #define PCG_CONSTANT 0x853c49e6748fea9bull
+
+#define U32_MAX_FLOAT 4294967295.0f
 
 typedef struct {
     u64 state;
@@ -60,12 +60,14 @@ int main(void) {
                 ((f32)xor_shift_32(&xor_shift_rng)) / U32_MAX_FLOAT;
             pcg_mean += ((f32)pcg_32(&pcg_rng)) / U32_MAX_FLOAT;
         }
-        printf("\n"
-               "xorShiftRng.state  : %u\n"
-               "xorShiftRng (mean) : %.8f\n\n"
-               "pcgRng.state       : %lu\n"
-               "pcgRng.increment   : %lu\n"
-               "pcgRng      (mean) : %.8f\n",
+        printf("iterations          : %u\n"
+               "\n"
+               "xor_shift_rng.state : %u\n"
+               "xor_shift_mean      : %.8f\n\n"
+               "pcg_rng.state       : %lu\n"
+               "pcg_rng.increment   : %lu\n"
+               "pcg_mean            : %.8f\n",
+               n,
                xor_shift_rng.state,
                (double)(xor_shift_mean / m),
                pcg_rng.state,
