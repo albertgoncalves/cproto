@@ -32,10 +32,10 @@ static u32 xor_shift_32(xorShiftRng* rng) {
 
 static u32 pcg_32(pcgRng* rng) {
     u64 state = rng->state;
-    rng->state = (state * 6364136223846793005ull) + (rng->increment | 1u);
+    rng->state = (state * 6364136223846793005ull) + (rng->increment | 1);
     u32 xor_shift = (u32)(((state >> 18u) ^ state) >> 27u);
     u32 rotate = (u32)(state >> 59u);
-    return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31u));
+    return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31));
 }
 
 static u32 get_microseconds(void) {
@@ -51,11 +51,11 @@ int main(void) {
     pcg_rng.state = PCG_CONSTANT * get_microseconds();
     pcg_rng.increment = PCG_CONSTANT * get_microseconds();
     {
-        u32 n = 100000u;
+        u32 n = 1000000;
         f32 m = (f32)n;
         f32 xor_shift_mean = 0.0f;
         f32 pcg_mean = 0.0f;
-        for (u32 _ = 0u; _ < n; ++_) {
+        for (u32 _ = 0; _ < n; ++_) {
             xor_shift_mean +=
                 ((f32)xor_shift_32(&xor_shift_rng)) / U32_MAX_FLOAT;
             pcg_mean += ((f32)pcg_32(&pcg_rng)) / U32_MAX_FLOAT;
