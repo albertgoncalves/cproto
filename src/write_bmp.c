@@ -29,7 +29,6 @@ typedef struct {
     u32 header_offset;
 } bmpHeader;
 
-#pragma pack(1)
 typedef struct {
     u32 header_size;
     u32 pixel_width;
@@ -38,7 +37,6 @@ typedef struct {
     u16 bits_per_pixel;
 } dibHeader;
 
-#pragma pack(1)
 typedef struct {
     bmpHeader bmp_header;
     dibHeader dib_header;
