@@ -35,6 +35,7 @@ typedef struct {
     u32 pixel_height;
     u16 color_planes;
     u16 bits_per_pixel;
+    u8  _[24];
 } dibHeader;
 
 typedef struct {
