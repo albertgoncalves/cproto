@@ -11,7 +11,7 @@ typedef FILE fileHandle;
 
 #define WIDTH  512
 #define HEIGHT 512
-#define SIZE   1048576
+#define SIZE   262144
 
 #define FLOAT_WIDTH          512.0f
 #define FLOAT_HEIGHT         512.0f
@@ -41,7 +41,7 @@ typedef struct {
 typedef struct {
     bmpHeader bmp_header;
     dibHeader dib_header;
-    u8        pixels[SIZE];
+    u32       pixels[SIZE];
 } bmpFile;
 
 static void set_bmp_header(bmpHeader* header) {
@@ -58,17 +58,16 @@ static void set_dib_header(dibHeader* header) {
     header->bits_per_pixel = sizeof(u32) * 8;
 }
 
-static void set_pixels(u8* pixels) {
-    u32 i = 0;
+static void set_pixels(u32* pixels) {
     for (f32 y = 0.0f; y < FLOAT_HEIGHT; ++y) {
         f32 red = (y / FLOAT_HEIGHT) * SCALE;
         for (f32 x = 0.0f; x < FLOAT_WIDTH; ++x) {
             f32 green = (x / FLOAT_WIDTH) * SCALE;
             f32 blue = ((x + y) / FLOAT_HALF_PERIMETER) * SCALE;
-            pixels[i] = (u8)blue;
-            pixels[i + 1] = (u8)green;
-            pixels[i + 2] = (u8)red;
-            i += 4;
+            u8* pixel = (u8*)pixels++;
+            pixel[0] = (u8)blue;
+            pixel[1] = (u8)green;
+            pixel[2] = (u8)red;
         }
     }
 }

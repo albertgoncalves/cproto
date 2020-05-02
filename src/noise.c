@@ -9,15 +9,15 @@ typedef unsigned long  u64;
 
 typedef float f32;
 
-#define PCG_CONSTANT 0x853c49e6748fea9bull
-
 typedef FILE fileHandle;
 
 typedef struct timeval timeValue;
 
+#define PCG_CONSTANT 0x853c49e6748fea9bull
+
 #define WIDTH  128
 #define HEIGHT 128
-#define SIZE   65536
+#define SIZE   16384
 
 #define FILEPATH "out/noise.bmp"
 
@@ -41,7 +41,7 @@ typedef struct {
 typedef struct {
     bmpHeader bmp_header;
     dibHeader dib_header;
-    u8        pixels[SIZE];
+    u32       pixels[SIZE];
 } bmpFile;
 
 typedef struct {
@@ -87,15 +87,14 @@ static u32 pcg_32_bound(pcgRng* rng, u32 bound) {
     }
 }
 
-static void set_pixels(u8* pixels, pcgRng* rng) {
-    u32 i = 0;
+static void set_pixels(u32* pixels, pcgRng* rng) {
     for (u8 y = 0; y < HEIGHT; ++y) {
         for (u8 x = 0; x < WIDTH; ++x) {
-            u8 value = (u8)pcg_32_bound(rng, 255);
-            pixels[i] = value;
-            pixels[i + 1] = value;
-            pixels[i + 2] = value;
-            i += 4;
+            u8  value = (u8)pcg_32_bound(rng, 255);
+            u8* pixel = (u8*)pixels++;
+            pixel[0] = value;
+            pixel[1] = value;
+            pixel[2] = value;
         }
     }
 }
