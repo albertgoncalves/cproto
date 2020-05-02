@@ -21,7 +21,8 @@ typedef struct timeval timeValue;
 
 #define FILEPATH "out/noise.bmp"
 
-#pragma pack(1)
+#pragma pack(push, 1)
+
 typedef struct {
     u16 id;
     u32 file_size;
@@ -38,10 +39,19 @@ typedef struct {
     u8  _[24];
 } dibHeader;
 
+#pragma pack(pop)
+
+typedef struct {
+    u8 blue;
+    u8 green;
+    u8 red;
+    u8 _;
+} pixel;
+
 typedef struct {
     bmpHeader bmp_header;
     dibHeader dib_header;
-    u32       pixels[SIZE];
+    pixel     pixels[SIZE];
 } bmpFile;
 
 typedef struct {
@@ -87,14 +97,14 @@ static u32 pcg_32_bound(pcgRng* rng, u32 bound) {
     }
 }
 
-static void set_pixels(u32* pixels, pcgRng* rng) {
+static void set_pixels(pixel* pixels, pcgRng* rng) {
     for (u8 y = 0; y < HEIGHT; ++y) {
         for (u8 x = 0; x < WIDTH; ++x) {
-            u8  value = (u8)pcg_32_bound(rng, 255);
-            u8* pixel = (u8*)pixels++;
-            pixel[0] = value;
-            pixel[1] = value;
-            pixel[2] = value;
+            u8 value = (u8)pcg_32_bound(rng, 255);
+            pixels->red = value;
+            pixels->green = value;
+            pixels->blue = value;
+            ++pixels;
         }
     }
 }
