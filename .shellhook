@@ -9,45 +9,75 @@ for x in bin build out; do
 done
 
 export FLAGS=(
-    -fdelete-null-pointer-checks
-    -fshort-enums
-    -O1
+    "-fdelete-null-pointer-checks"
+    "-fshort-enums"
+    "-O1"
     "-std=gnu99"
-    -Wall
-    -Wcast-align
+    "-Wall"
+    "-Wcast-align"
     "-Wcast-align=strict"
-    -Wcast-qual
-    -Wconversion
-    -Wdate-time
-    -Wdouble-promotion
-    -Wduplicated-branches
-    -Wduplicated-cond
-    -Werror
-    -Wextra
-    -Wfatal-errors
-    -Wfloat-equal
+    "-Wcast-qual"
+    "-Wconversion"
+    "-Wdate-time"
+    "-Wdouble-promotion"
+    "-Wduplicated-branches"
+    "-Wduplicated-cond"
+    "-Werror"
+    "-Wextra"
+    "-Wfatal-errors"
+    "-Wfloat-equal"
     "-Wformat=2"
-    -Wformat-signedness
-    -Winline
-    -Wlogical-op
-    -Wmissing-declarations
-    -Wmissing-include-dirs
-    -Wmissing-prototypes
-    -Wnested-externs
-    -Wnull-dereference
-    -Wpacked
-    -Wpedantic
-    -Wpointer-arith
-    -Wredundant-decls
-    -Wshadow
-    -Wstack-protector
-    -Wstrict-prototypes
-    -Wswitch-enum
-    -Wtrampolines
-    -Wundef
-    -Wunused
-    -Wunused-macros
-    -Wwrite-strings
+    "-Wformat-signedness"
+    "-Winline"
+    "-Wlogical-op"
+    "-Wmissing-declarations"
+    "-Wmissing-include-dirs"
+    "-Wmissing-prototypes"
+    "-Wnested-externs"
+    "-Wnull-dereference"
+    "-Wpacked"
+    "-Wpedantic"
+    "-Wpointer-arith"
+    "-Wredundant-decls"
+    "-Wshadow"
+    "-Wstack-protector"
+    "-Wstrict-prototypes"
+    "-Wswitch-enum"
+    "-Wtrampolines"
+    "-Wundef"
+    "-Wunused"
+    "-Wunused-macros"
+    "-Wwrite-strings"
+)
+export FLAGS_SANITIZE=(
+    "-fsanitize=address"
+    "-fsanitize-address-use-after-scope"
+    "-fsanitize=alignment"
+    "-fsanitize=bool"
+    "-fsanitize=bounds"
+    "-fsanitize=bounds-strict"
+    "-fsanitize=builtin"
+    "-fsanitize=enum"
+    "-fsanitize=float-cast-overflow"
+    "-fsanitize=float-divide-by-zero"
+    "-fsanitize=integer-divide-by-zero"
+    "-fsanitize=leak"
+    "-fsanitize=nonnull-attribute"
+    "-fsanitize=null"
+    "-fsanitize=object-size"
+    "-fsanitize=pointer-compare"
+    "-fsanitize=pointer-overflow"
+    "-fsanitize=pointer-subtract"
+    "-fsanitize=return"
+    "-fsanitize=returns-nonnull-attribute"
+    "-fsanitize=shift"
+    "-fsanitize=shift-base"
+    "-fsanitize=shift-exponent"
+    "-fsanitize=signed-integer-overflow"
+    "-fsanitize=undefined"
+    "-fsanitize-undefined-trap-on-error"
+    "-fsanitize=unreachable"
+    "-fsanitize=vla-bound"
 )
 
 runc () {
@@ -57,12 +87,22 @@ runc () {
     cp "$1" "$WD/build/$handle.c"
     (
         cd "$WD/build" || return
-        gcc -g "${FLAGS[@]}" "$handle.c" -o "$WD/bin/$handle" || return
+        gcc \
+            -o "$WD/bin/${handle}_valgrind" \
+            "${FLAGS[@]}" \
+            "$handle.c" \
+            || return
+        gcc \
+            -o "$WD/bin/${handle}_sanitize" \
+            "${FLAGS[@]}" \
+            "${FLAGS_SANITIZE[@]}" \
+            "$handle.c" \
+            || return
         cd "$pin" || return
         if [ -z "$2" ]; then
-            "$WD/bin/$handle"
+            "$WD/bin/${handle}_sanitize"
         else
-            "$WD/bin/$handle" "$2"
+            "$WD/bin/${handle}_sanitize" "$2"
         fi
     )
 }
