@@ -8,9 +8,12 @@ for x in bin build out; do
     fi
 done
 
+# NOTE: See `https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html`.
 export FLAGS=(
     "-fdelete-null-pointer-checks"
     "-fshort-enums"
+    "-march=native"
+    "-mavx"
     "-O1"
     "-std=gnu99"
     "-Wall"
