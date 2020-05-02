@@ -13,13 +13,19 @@ typedef struct timeval timeValue;
 #define U32_MAX_FLOAT 4294967295.0f
 
 typedef struct {
+    u32 state;
+} xorShiftRng;
+
+typedef struct {
     u64 state;
     u64 increment;
 } pcgRng;
 
-typedef struct {
-    u32 state;
-} xorShiftRng;
+static u32 get_microseconds(void) {
+    timeValue time;
+    gettimeofday(&time, NULL);
+    return (u32)time.tv_usec;
+}
 
 static u32 xor_shift_32(xorShiftRng* rng) {
     u32 state = rng->state;
@@ -36,12 +42,6 @@ static u32 pcg_32(pcgRng* rng) {
     u32 xor_shift = (u32)(((state >> 18u) ^ state) >> 27u);
     u32 rotate = (u32)(state >> 59u);
     return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31));
-}
-
-static u32 get_microseconds(void) {
-    timeValue time;
-    gettimeofday(&time, NULL);
-    return (u32)time.tv_usec;
 }
 
 int main(void) {
