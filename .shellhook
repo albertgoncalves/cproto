@@ -105,7 +105,7 @@ runc () {
 }
 
 open () {
-    sxiv "$1" > /dev/null 2>&1
+    xdg-open "$1" > /dev/null 2>&1
 }
 
 export -f runc

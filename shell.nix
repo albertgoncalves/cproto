@@ -5,7 +5,6 @@ mkShell{
         gdb
         glibcLocales
         shellcheck
-        sxiv
         valgrind
     ];
     shellHook = ''
