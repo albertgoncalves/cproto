@@ -59,6 +59,16 @@ typedef struct {
     pixel     pixels[SIZE];
 } bmpFile;
 
+typedef enum {
+    darkGray = 0,
+    lightGray,
+} color;
+
+typedef struct {
+    bmpFile bmp_buffer;
+    color   mask[SIZE];
+} memoryPool;
+
 typedef struct {
     u64 state;
     u64 increment;
@@ -102,24 +112,7 @@ static u32 pcg_32_bound(pcgRng* rng, u32 bound) {
     }
 }
 
-static void set_all_pixels(pixel* pixels, u8 color) {
-    for (u32 _ = 0; _ < SIZE; ++_) {
-        pixel* p = pixels++;
-        p->red = color;
-        p->green = color;
-        p->blue = color;
-    }
-}
-
-static void set_pixel(pixel* pixels, u32 x, u32 y) {
-    u32    index = (y * WIDTH) + x;
-    pixel* p = &pixels[index];
-    p->red = LIGHT_GRAY;
-    p->green = LIGHT_GRAY;
-    p->blue = LIGHT_GRAY;
-}
-
-static void set_line(pixel* pixels, i32 x0, i32 y0, i32 x1, i32 y1) {
+static void set_line(color* mask, i32 x0, i32 y0, i32 x1, i32 y1) {
     i32 x_delta = abs(x1 - x0);
     i32 x_sign = x0 < x1 ? 1 : -1;
     i32 y_delta = abs(y1 - y0);
@@ -127,7 +120,8 @@ static void set_line(pixel* pixels, i32 x0, i32 y0, i32 x1, i32 y1) {
     i32 error_a = (y_delta < x_delta ? x_delta : -y_delta) / 2;
     i32 error_b;
     for (;;) {
-        set_pixel(pixels, (u32)x0, (u32)y0);
+        u32 index = (u32)((y0 * WIDTH) + x0);
+        mask[index] = lightGray;
         if ((x0 == x1) && (y0 == y1)) {
             return;
         }
@@ -143,33 +137,55 @@ static void set_line(pixel* pixels, i32 x0, i32 y0, i32 x1, i32 y1) {
     }
 }
 
+static void set_pixels(color* mask, pixel* pixels) {
+    for (u32 _ = 0; _ < SIZE; ++_) {
+        pixel* p = pixels++;
+        color* m = mask++;
+        switch (*m) {
+        case darkGray: {
+            p->red = DARK_GRAY;
+            p->green = DARK_GRAY;
+            p->blue = DARK_GRAY;
+            break;
+        }
+        case lightGray: {
+            p->red = LIGHT_GRAY;
+            p->green = LIGHT_GRAY;
+            p->blue = LIGHT_GRAY;
+            break;
+        }
+        }
+    }
+}
+
 int main(void) {
     fileHandle* file = fopen(FILEPATH, "wb");
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    bmpFile* bmp_buffer = calloc(sizeof(bmpFile), 1);
-    if (bmp_buffer == NULL) {
+    memoryPool* memory = calloc(sizeof(memoryPool), 1);
+    if (memory == NULL) {
         return EXIT_FAILURE;
     }
+    bmpFile* bmp_buffer = &memory->bmp_buffer;
     set_bmp_header(&bmp_buffer->bmp_header);
     set_dib_header(&bmp_buffer->dib_header);
     pcgRng rng;
     rng.state = PCG_CONSTANT * get_microseconds();
     rng.increment = PCG_CONSTANT * get_microseconds();
-    set_all_pixels(bmp_buffer->pixels, DARK_GRAY);
-    for (u8 i = 0; i < 8; ++i) {
-        set_line(bmp_buffer->pixels,
-                 (i32)pcg_32_bound(&rng, 255),
-                 (i32)pcg_32_bound(&rng, 255),
-                 (i32)pcg_32_bound(&rng, 255),
-                 (i32)pcg_32_bound(&rng, 255));
+    for (u8 i = 0; i < 16; ++i) {
+        set_line(memory->mask,
+                 (i32)pcg_32_bound(&rng, WIDTH),
+                 (i32)pcg_32_bound(&rng, WIDTH),
+                 (i32)pcg_32_bound(&rng, WIDTH),
+                 (i32)pcg_32_bound(&rng, WIDTH));
     }
+    set_pixels(memory->mask, bmp_buffer->pixels);
     u32 filesize = sizeof(bmpFile);
     if (fwrite(bmp_buffer, 1, filesize, file) != filesize) {
         return EXIT_FAILURE;
     }
     fclose(file);
-    free(bmp_buffer);
+    free(memory);
     return EXIT_SUCCESS;
 }
