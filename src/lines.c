@@ -120,8 +120,7 @@ static void set_line(color* mask, i32 x0, i32 y0, i32 x1, i32 y1) {
     i32 error_a = (y_delta < x_delta ? x_delta : -y_delta) / 2;
     i32 error_b;
     for (;;) {
-        u32 index = (u32)((y0 * WIDTH) + x0);
-        mask[index] = lightGray;
+        mask[(y0 * WIDTH) + x0] = lightGray;
         if ((x0 == x1) && (y0 == y1)) {
             return;
         }
