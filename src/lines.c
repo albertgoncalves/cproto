@@ -44,14 +44,14 @@ typedef struct {
     u8  _[24];
 } dibHeader;
 
-#pragma pack(pop)
-
 typedef struct {
     u8 blue;
     u8 green;
     u8 red;
     u8 _;
 } pixel;
+
+#pragma pack(pop)
 
 typedef struct {
     bmpHeader bmp_header;
