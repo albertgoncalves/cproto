@@ -53,21 +53,17 @@ typedef struct {
 
 #pragma pack(pop)
 
-typedef struct {
-    bmpHeader bmp_header;
-    dibHeader dib_header;
-    pixel     pixels[SIZE];
-} bmpFile;
-
 typedef enum {
     darkGray = 0,
     lightGray,
 } color;
 
 typedef struct {
-    bmpFile bmp_buffer;
-    color   mask[SIZE];
-} memoryPool;
+    color     mask[SIZE];
+    pixel     pixels[SIZE];
+    dibHeader dib_header;
+    bmpHeader bmp_header;
+} bmpBuffer;
 
 typedef struct {
     u64 state;
@@ -76,7 +72,8 @@ typedef struct {
 
 static void set_bmp_header(bmpHeader* header) {
     header->id = 0x4d42;
-    header->file_size = sizeof(bmpFile);
+    header->file_size =
+        sizeof(bmpHeader) + sizeof(dibHeader) + sizeof(pixel[SIZE]);
     header->header_offset = sizeof(bmpHeader) + sizeof(dibHeader);
 }
 
@@ -157,34 +154,48 @@ static void set_pixels(color* mask, pixel* pixels) {
     }
 }
 
+static void write_bmp(fileHandle* file, bmpBuffer* buffer) {
+    if (fwrite(&buffer->bmp_header, 1, sizeof(bmpHeader), file) !=
+        sizeof(bmpHeader))
+    {
+        exit(EXIT_FAILURE);
+    }
+    if (fwrite(&buffer->dib_header, 1, sizeof(dibHeader), file) !=
+        sizeof(dibHeader))
+    {
+        exit(EXIT_FAILURE);
+    }
+    if (fwrite(&buffer->pixels, 1, sizeof(pixel[SIZE]), file) !=
+        sizeof(pixel[SIZE]))
+    {
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main(void) {
     fileHandle* file = fopen(FILEPATH, "wb");
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    memoryPool* memory = calloc(sizeof(memoryPool), 1);
-    if (memory == NULL) {
+    bmpBuffer* buffer = calloc(sizeof(bmpBuffer), 1);
+    if (buffer == NULL) {
         return EXIT_FAILURE;
     }
-    bmpFile* bmp_buffer = &memory->bmp_buffer;
-    set_bmp_header(&bmp_buffer->bmp_header);
-    set_dib_header(&bmp_buffer->dib_header);
+    set_bmp_header(&buffer->bmp_header);
+    set_dib_header(&buffer->dib_header);
     pcgRng rng;
     rng.state = PCG_CONSTANT * get_microseconds();
     rng.increment = PCG_CONSTANT * get_microseconds();
     for (u8 i = 0; i < 16; ++i) {
-        set_line(memory->mask,
+        set_line(buffer->mask,
                  (i32)pcg_32_bound(&rng, WIDTH),
                  (i32)pcg_32_bound(&rng, WIDTH),
                  (i32)pcg_32_bound(&rng, WIDTH),
                  (i32)pcg_32_bound(&rng, WIDTH));
     }
-    set_pixels(memory->mask, bmp_buffer->pixels);
-    u32 filesize = sizeof(bmpFile);
-    if (fwrite(bmp_buffer, 1, filesize, file) != filesize) {
-        return EXIT_FAILURE;
-    }
+    set_pixels(buffer->mask, buffer->pixels);
+    write_bmp(file, buffer);
     fclose(file);
-    free(memory);
+    free(buffer);
     return EXIT_SUCCESS;
 }

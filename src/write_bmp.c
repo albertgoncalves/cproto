@@ -49,14 +49,15 @@ typedef struct {
 #pragma pack(pop)
 
 typedef struct {
-    bmpHeader bmp_header;
-    dibHeader dib_header;
     pixel     pixels[SIZE];
-} bmpFile;
+    dibHeader dib_header;
+    bmpHeader bmp_header;
+} bmpBuffer;
 
 static void set_bmp_header(bmpHeader* header) {
     header->id = 0x4d42;
-    header->file_size = sizeof(bmpFile);
+    header->file_size =
+        sizeof(bmpHeader) + sizeof(dibHeader) + sizeof(pixel[SIZE]);
     header->header_offset = sizeof(bmpHeader) + sizeof(dibHeader);
 }
 
@@ -82,23 +83,38 @@ static void set_pixels(pixel* pixels) {
     }
 }
 
+static void write_bmp(fileHandle* file, bmpBuffer* buffer) {
+    if (fwrite(&buffer->bmp_header, 1, sizeof(bmpHeader), file) !=
+        sizeof(bmpHeader))
+    {
+        exit(EXIT_FAILURE);
+    }
+    if (fwrite(&buffer->dib_header, 1, sizeof(dibHeader), file) !=
+        sizeof(dibHeader))
+    {
+        exit(EXIT_FAILURE);
+    }
+    if (fwrite(&buffer->pixels, 1, sizeof(pixel[SIZE]), file) !=
+        sizeof(pixel[SIZE]))
+    {
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main(void) {
     fileHandle* file = fopen(FILEPATH, "wb");
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    bmpFile* bmp_buffer = calloc(sizeof(bmpFile), 1);
-    if (bmp_buffer == NULL) {
+    bmpBuffer* buffer = calloc(sizeof(bmpBuffer), 1);
+    if (buffer == NULL) {
         return EXIT_FAILURE;
     }
-    set_bmp_header(&bmp_buffer->bmp_header);
-    set_dib_header(&bmp_buffer->dib_header);
-    set_pixels(bmp_buffer->pixels);
-    u32 filesize = sizeof(bmpFile);
-    if (fwrite(bmp_buffer, 1, filesize, file) != filesize) {
-        return EXIT_FAILURE;
-    }
+    set_bmp_header(&buffer->bmp_header);
+    set_dib_header(&buffer->dib_header);
+    set_pixels(buffer->pixels);
+    write_bmp(file, buffer);
     fclose(file);
-    free(bmp_buffer);
+    free(buffer);
     return EXIT_SUCCESS;
 }
