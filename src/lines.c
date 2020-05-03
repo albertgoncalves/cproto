@@ -51,6 +51,9 @@ typedef struct {
     u8 _;
 } pixel;
 
+#define BMP_HEADER_SIZE sizeof(bmpHeader) + sizeof(dibHeader)
+#define BMP_FILE_SIZE   BMP_HEADER_SIZE + sizeof(pixel[SIZE])
+
 #pragma pack(pop)
 
 typedef enum {
@@ -72,9 +75,8 @@ typedef struct {
 
 static void set_bmp_header(bmpHeader* header) {
     header->id = 0x4d42;
-    header->file_size =
-        sizeof(bmpHeader) + sizeof(dibHeader) + sizeof(pixel[SIZE]);
-    header->header_offset = sizeof(bmpHeader) + sizeof(dibHeader);
+    header->file_size = BMP_FILE_SIZE;
+    header->header_offset = BMP_HEADER_SIZE;
 }
 
 static void set_dib_header(dibHeader* header) {
