@@ -138,22 +138,22 @@ static void set_line(color* mask, i32 x0, i32 y0, i32 x1, i32 y1) {
 
 static void set_pixels(color* mask, pixel* pixels) {
     for (u32 _ = 0; _ < SIZE; ++_) {
-        pixel* p = pixels++;
-        color* m = mask++;
-        switch (*m) {
+        switch (*mask) {
         case darkGray: {
-            p->red = DARK_GRAY;
-            p->green = DARK_GRAY;
-            p->blue = DARK_GRAY;
+            pixels->red = DARK_GRAY;
+            pixels->green = DARK_GRAY;
+            pixels->blue = DARK_GRAY;
             break;
         }
         case lightGray: {
-            p->red = LIGHT_GRAY;
-            p->green = LIGHT_GRAY;
-            p->blue = LIGHT_GRAY;
+            pixels->red = LIGHT_GRAY;
+            pixels->green = LIGHT_GRAY;
+            pixels->blue = LIGHT_GRAY;
             break;
         }
         }
+        ++pixels;
+        ++mask;
     }
 }
 

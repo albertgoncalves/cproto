@@ -21,7 +21,8 @@ typedef FILE fileHandle;
 
 #define FILEPATH "out/hello.bmp"
 
-#pragma pack(1)
+#pragma pack(push, 1)
+
 typedef struct {
     u16 id;
     u32 file_size;
@@ -39,9 +40,18 @@ typedef struct {
 } dibHeader;
 
 typedef struct {
+    u8 blue;
+    u8 green;
+    u8 red;
+    u8 _;
+} pixel;
+
+#pragma pack(pop)
+
+typedef struct {
     bmpHeader bmp_header;
     dibHeader dib_header;
-    u32       pixels[SIZE];
+    pixel     pixels[SIZE];
 } bmpFile;
 
 static void set_bmp_header(bmpHeader* header) {
@@ -58,16 +68,16 @@ static void set_dib_header(dibHeader* header) {
     header->bits_per_pixel = sizeof(u32) * 8;
 }
 
-static void set_pixels(u32* pixels) {
+static void set_pixels(pixel* pixels) {
     for (f32 y = 0.0f; y < FLOAT_HEIGHT; ++y) {
         f32 red = (y / FLOAT_HEIGHT) * SCALE;
         for (f32 x = 0.0f; x < FLOAT_WIDTH; ++x) {
             f32 green = (x / FLOAT_WIDTH) * SCALE;
             f32 blue = ((x + y) / FLOAT_HALF_PERIMETER) * SCALE;
-            u8* pixel = (u8*)pixels++;
-            pixel[0] = (u8)blue;
-            pixel[1] = (u8)green;
-            pixel[2] = (u8)red;
+            pixels->blue = (u8)blue;
+            pixels->green = (u8)green;
+            pixels->red = (u8)red;
+            ++pixels;
         }
     }
 }
