@@ -88,12 +88,14 @@ runc () {
     (
         cd "$WD/build" || return
         gcc \
+            -g \
             -o "$WD/bin/${handle}_valgrind" \
             "${FLAGS[@]}" \
             -lm \
             "$handle.c" \
             || return
         gcc \
+            -g \
             -o "$WD/bin/${handle}_sanitize" \
             "${FLAGS[@]}" \
             "${FLAGS_SANITIZE[@]}" \

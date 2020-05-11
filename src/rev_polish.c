@@ -90,10 +90,13 @@ static f32 eval_rev_polish(const char* expression, f32* stack, char* buffer) {
 int main(void) {
     /* NOTE: Shunting-yard of `3 + 4 * 2 / (1 - 5) ^ 2 ^ 3`. */
     const char* expression = "3 4 2 * 1 5 - 2 3 ^ ^ / +";
-    u8          n = (u8)strlen(expression);
-    f32*        pool = calloc(sizeof(f32) + sizeof(char), n);
-    f32         result = eval_rev_polish(expression, pool, (char*)&pool[n]);
-    free(pool);
-    printf("%.8f\n", (double)result);
+    {
+        u8    n = (u8)strlen(expression);
+        void* pool = calloc(sizeof(f32) + sizeof(char), n);
+        f32*  stack = (f32*)pool;
+        char* buffer = (char*)&stack[n];
+        printf("%.8f\n", (double)eval_rev_polish(expression, stack, buffer));
+        free(pool);
+    }
     return EXIT_SUCCESS;
 }
