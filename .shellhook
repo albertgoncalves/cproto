@@ -90,12 +90,14 @@ runc () {
         gcc \
             -o "$WD/bin/${handle}_valgrind" \
             "${FLAGS[@]}" \
+            -lm \
             "$handle.c" \
             || return
         gcc \
             -o "$WD/bin/${handle}_sanitize" \
             "${FLAGS[@]}" \
             "${FLAGS_SANITIZE[@]}" \
+            -lm \
             "$handle.c" \
             || return
         cd "$pin" || return

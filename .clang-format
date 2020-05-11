@@ -11,6 +11,8 @@ AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortFunctionsOnASingleLine: None
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
 IndentCaseLabels: false
 IndentPPDirectives: BeforeHash
 BinPackArguments: false
@@ -18,5 +20,6 @@ BinPackParameters: false
 BreakBeforeBraces: Custom
 BraceWrapping:
     AfterControlStatement: MultiLine
+PenaltyReturnTypeOnItsOwnLine: 150
 PointerAlignment: Left
 SpacesInContainerLiterals: false
