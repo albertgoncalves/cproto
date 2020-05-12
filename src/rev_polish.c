@@ -7,10 +7,9 @@ typedef unsigned char u8;
 typedef float         f32;
 
 static f32 eval_rev_polish(const char* expression, f32* stack, char* buffer) {
-    u8   stack_index = 0;
-    u8   buffer_index = 0;
-    char token = *expression++;
-    for (; token != '\0'; token = *expression++) {
+    u8 stack_index = 0;
+    u8 buffer_index = 0;
+    for (char token = *expression++; token != '\0'; token = *expression++) {
         switch (token) {
         case '+': {
             if (stack_index < 2) {
