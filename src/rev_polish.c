@@ -91,7 +91,7 @@ int main(void) {
     const char* expression = "3 4 2 * 1 5 - 2 3 ^ ^ / +";
     {
         u8    n = (u8)strlen(expression);
-        void* pool = calloc(sizeof(f32) + sizeof(char), n);
+        void* pool = calloc(n, sizeof(f32) + sizeof(char));
         f32*  stack = (f32*)pool;
         char* buffer = (char*)&stack[n];
         printf("%.8f\n", (double)eval_rev_polish(expression, stack, buffer));
