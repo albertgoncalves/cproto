@@ -21,16 +21,14 @@ static char* get_infix(const char* expression) {
     for (u8 i = 0; i < n; ++i) {
         char token = expression[i];
         buffer[buffer_index++] = token;
-        if ((token == '(') || (token == '|')) {
+        if ((token == '(') || (token == '|') || (m <= i)) {
             continue;
         }
-        if (i < m) {
-            char peek = expression[i + 1];
-            if ((peek == '*') || (peek == '|') || (peek == ')')) {
-                continue;
-            }
-            buffer[buffer_index++] = INFIX_OPERATOR;
+        char peek = expression[i + 1];
+        if ((peek == '*') || (peek == '|') || (peek == ')')) {
+            continue;
         }
+        buffer[buffer_index++] = INFIX_OPERATOR;
     }
     return buffer;
 }
