@@ -3,26 +3,23 @@
 #include <string.h>
 #include <unistd.h>
 
-/*
- * Convert infix regexp re to postfix notation.
+/* Convert infix regexp re to postfix notation.
  * Insert . as explicit concatenation operator.
  * Cheesy parser, return static buffer.
  */
 static char* re2post(char* re) {
-    int         nalt, natom;
-    static char buf[8000];
-    char*       dst;
+    static char buffer[128];
+    if (strlen(re) >= sizeof buffer / 2) {
+        return NULL;
+    }
     struct {
         int nalt;
         int natom;
-    } paren[100], *p;
+    } paren[64], *p;
     p = paren;
-    dst = buf;
-    nalt = 0;
-    natom = 0;
-    if (strlen(re) >= sizeof buf / 2) {
-        return NULL;
-    }
+    char* dst = buffer;
+    int   nalt = 0;
+    int   natom = 0;
     for (; *re; re++) {
         switch (*re) {
         case '(': {
@@ -90,7 +87,7 @@ static char* re2post(char* re) {
             *dst++ = *re;
             break;
         }
-        default:
+        default: {
             if (natom > 1) {
                 --natom;
                 *dst++ = '.';
@@ -98,6 +95,7 @@ static char* re2post(char* re) {
             *dst++ = *re;
             natom++;
             break;
+        }
         }
     }
     if (p != paren) {
@@ -110,11 +108,10 @@ static char* re2post(char* re) {
         *dst++ = '|';
     }
     *dst = 0;
-    return buf;
+    return buffer;
 }
 
-/*
- * Represents an NFA state plus zero or one or two arrows exiting.
+/* Represents an NFA state plus zero or one or two arrows exiting.
  * if c == Match, no arrows out; matching state.
  * If c == Split, unlabeled arrows to out and out1 (if != NULL).
  * If c < 256, labeled arrow with character c to out.
@@ -135,10 +132,18 @@ State matchstate = {
 }; /* matching state */
 int nstate;
 
+#define STATE_LIST_CAP 256
+static State* STATE_LIST[STATE_LIST_CAP];
+static int    STATE_LIST_INDEX = 0;
+
 /* Allocate and initialize State */
 static State* state(int c, State* out, State* out1) {
     nstate++;
     State* s = malloc(sizeof *s);
+    if (STATE_LIST_CAP <= STATE_LIST_INDEX) {
+        exit(1);
+    }
+    STATE_LIST[STATE_LIST_INDEX++] = s;
     s->lastlist = 0;
     s->c = c;
     s->out = out;
@@ -146,8 +151,7 @@ static State* state(int c, State* out, State* out1) {
     return s;
 }
 
-/*
- * A partially built NFA without the matching state filled in.
+/* A partially built NFA without the matching state filled in.
  * Frag.start points at the start state.
  * Frag.out is a list of places that need to be set to the
  * next state for this fragment.
@@ -165,8 +169,7 @@ static Frag frag(State* start, Ptrlist* out) {
     return n;
 }
 
-/*
- * Since the out pointers in the list are always
+/* Since the out pointers in the list are always
  * uninitialized, we use the pointers themselves
  * as storage for the Ptrlists.
  */
@@ -194,8 +197,9 @@ static void patch(Ptrlist* l, State* s) {
 /* Join the two lists l1 and l2, returning the combination. */
 static Ptrlist* append(Ptrlist* l1, Ptrlist* l2) {
     Ptrlist* oldl1 = l1;
-    while (l1->next)
+    while (l1->next) {
         l1 = l1->next;
+    }
     l1->next = l2;
     return oldl1;
 }
@@ -204,11 +208,12 @@ static Ptrlist* append(Ptrlist* l1, Ptrlist* l2) {
  * Convert postfix regular expression to NFA.
  * Return start state.
  */
+
 static State* post2nfa(char* postfix) {
     if (postfix == NULL) {
         return NULL;
     }
-    Frag  stack[1000];
+    Frag  stack[256];
     Frag* stackp = stack;
 #define push(s) *stackp++ = s
 #define pop()   *--stackp
@@ -364,6 +369,9 @@ int main(int argc, char** argv) {
         } else {
             printf("No match! (\"%s\", \"%s\")\n", post, argv[i]);
         }
+    }
+    for (int i = 0; i < STATE_LIST_INDEX; ++i) {
+        free(STATE_LIST[i]);
     }
     free(l1.s);
     free(l2.s);
