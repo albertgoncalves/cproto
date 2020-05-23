@@ -36,7 +36,7 @@ static char* get_infix(const char* expression) {
 int main(void) {
     const char* input = "((a|b)cd)efg";
     char*       output = get_infix(input);
-    printf("%s\n%s\n", input, output);
+    printf("%s -> %s\n", input, output);
     free(output);
     return EXIT_SUCCESS;
 }
