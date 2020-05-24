@@ -92,6 +92,9 @@ int main(void) {
     {
         u8    n = (u8)strlen(expression);
         void* pool = calloc(n, sizeof(f32) + sizeof(char));
+        if (pool == NULL) {
+            return EXIT_FAILURE;
+        }
         f32*  stack = (f32*)pool;
         char* buffer = (char*)&stack[n];
         printf("%.8f\n", (double)eval_rev_polish(expression, stack, buffer));

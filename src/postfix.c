@@ -26,7 +26,10 @@ static char* get_postfix(const char* expression) {
     OpCounter stack[STACK_CAP] = {0};
     u8        stack_index = 0;
     char*     buffer = calloc(n * 2u, sizeof(char));
-    u8        buffer_index = 0;
+    if (buffer == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    u8 buffer_index = 0;
     for (u8 i = 0; i < n; ++i) {
         char token = expression[i];
         switch (token) {

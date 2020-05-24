@@ -16,6 +16,9 @@ static char* get_infix(const char* expression) {
         exit(EXIT_FAILURE);
     }
     char* buffer = calloc(n * 2u, sizeof(char));
+    if (buffer == NULL) {
+        exit(EXIT_FAILURE);
+    }
     u8    m = (u8)(n - 1u);
     u8    buffer_index = 0;
     for (u8 i = 0; i < n; ++i) {
