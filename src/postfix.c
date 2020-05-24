@@ -117,7 +117,7 @@ static char* get_postfix(const char* expression) {
 }
 
 int main(void) {
-    const char* input = "((a|b)cd)efg";
+    const char* input = "a(b|c)*d";
     char*       output = get_postfix(input);
     printf("%s -> %s\n", input, output);
     free(output);
