@@ -1,379 +1,190 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
-/* Convert infix regexp re to postfix notation.
- * Insert . as explicit concatenation operator.
- * Cheesy parser, return static buffer.
- */
-static char* re2post(char* re) {
-    static char buffer[128];
-    if (strlen(re) >= sizeof buffer / 2) {
-        return NULL;
-    }
-    struct {
-        int nalt;
-        int natom;
-    } paren[64], *p;
-    p = paren;
-    char* dst = buffer;
-    int   nalt = 0;
-    int   natom = 0;
-    for (; *re; re++) {
-        switch (*re) {
-        case '(': {
-            if (natom > 1) {
-                --natom;
-                *dst++ = '.';
-            }
-            if (p >= paren + 100) {
-                return NULL;
-            }
-            p->nalt = nalt;
-            p->natom = natom;
-            p++;
-            nalt = 0;
-            natom = 0;
-            break;
-        }
-        case '|': {
-            if (natom == 0) {
-                return NULL;
-            }
-            while (--natom > 0) {
-                *dst++ = '.';
-            }
-            nalt++;
-            break;
-        }
-        case ')': {
-            if (p == paren) {
-                return NULL;
-            }
-            if (natom == 0) {
-                return NULL;
-            }
-            while (--natom > 0) {
-                *dst++ = '.';
-            }
-            for (; nalt > 0; nalt--) {
-                *dst++ = '|';
-            }
-            --p;
-            nalt = p->nalt;
-            natom = p->natom;
-            natom++;
-            break;
-        }
-        case '*': {
-            if (natom == 0) {
-                return NULL;
-            }
-            *dst++ = *re;
-            break;
-        }
-        case '+': {
-            if (natom == 0) {
-                return NULL;
-            }
-            *dst++ = *re;
-            break;
-        }
-        case '?': {
-            if (natom == 0) {
-                return NULL;
-            }
-            *dst++ = *re;
-            break;
-        }
-        default: {
-            if (natom > 1) {
-                --natom;
-                *dst++ = '.';
-            }
-            *dst++ = *re;
-            natom++;
-            break;
-        }
-        }
-    }
-    if (p != paren) {
-        return NULL;
-    }
-    while (--natom > 0) {
-        *dst++ = '.';
-    }
-    for (; nalt > 0; nalt--) {
-        *dst++ = '|';
-    }
-    *dst = 0;
-    return buffer;
-}
+typedef unsigned char u8;
 
-/* Represents an NFA state plus zero or one or two arrows exiting.
- * if c == Match, no arrows out; matching state.
- * If c == Split, unlabeled arrows to out and out1 (if != NULL).
- * If c < 256, labeled arrow with character c to out.
- */
-enum { Match = 256, Split = 257 };
+#define STATE_CAP 64
+#define STACK_CAP 64
+
+#define OP_CONCAT '.'
+
+typedef enum {
+    FALSE = 0,
+    TRUE,
+} Bool;
+
+typedef enum {
+    TOKEN,
+    SPLIT,
+} StateType;
+
 typedef struct State State;
+
+typedef struct {
+    State* state_a;
+    State* state_b;
+} Split;
+
+typedef union {
+    State* state;
+    Split  split;
+} Flow;
+
 struct State {
-    int    c;
-    State* out;
-    State* out1;
-    int    lastlist;
-};
-State matchstate = {
-    .c = Match,
-    .out = NULL,
-    .out1 = NULL,
-    .lastlist = 0,
-}; /* matching state */
-int nstate;
-
-#define STATE_LIST_CAP 256
-static State* STATE_LIST[STATE_LIST_CAP];
-static int    STATE_LIST_INDEX = 0;
-
-/* Allocate and initialize State */
-static State* state(int c, State* out, State* out1) {
-    nstate++;
-    State* s = malloc(sizeof *s);
-    if (STATE_LIST_CAP <= STATE_LIST_INDEX) {
-        exit(1);
-    }
-    STATE_LIST[STATE_LIST_INDEX++] = s;
-    s->lastlist = 0;
-    s->c = c;
-    s->out = out;
-    s->out1 = out1;
-    return s;
-}
-
-/* A partially built NFA without the matching state filled in.
- * Frag.start points at the start state.
- * Frag.out is a list of places that need to be set to the
- * next state for this fragment.
- */
-typedef struct Frag   Frag;
-typedef union Ptrlist Ptrlist;
-struct Frag {
-    State*   start;
-    Ptrlist* out;
+    Flow      next;
+    Flow      last;
+    char      token;
+    StateType type;
 };
 
-/* Initialize Frag struct. */
-static Frag frag(State* start, Ptrlist* out) {
-    Frag n = {start, out};
-    return n;
-}
+typedef struct {
+    State  states[STATE_CAP];
+    State* stack[STACK_CAP];
+    State* stack_swap[STACK_CAP];
+    u8     state_len;
+} Memory;
 
-/* Since the out pointers in the list are always
- * uninitialized, we use the pointers themselves
- * as storage for the Ptrlists.
- */
-union Ptrlist {
-    Ptrlist* next;
-    State*   s;
-};
+typedef struct {
+    State** states;
+    u8      len;
+} Stack;
 
-/* Create singleton list containing just outp. */
-static Ptrlist* list1(State** outp) {
-    Ptrlist* l = (Ptrlist*)outp;
-    l->next = NULL;
-    return l;
-}
-
-/* Patch the list of states at out to point to start. */
-static void patch(Ptrlist* l, State* s) {
-    Ptrlist* next;
-    for (; l; l = next) {
-        next = l->next;
-        l->s = s;
+static State* state_new(Memory* memory) {
+    if (STATE_CAP <= memory->state_len) {
+        exit(EXIT_FAILURE);
     }
+    return &memory->states[memory->state_len++];
 }
 
-/* Join the two lists l1 and l2, returning the combination. */
-static Ptrlist* append(Ptrlist* l1, Ptrlist* l2) {
-    Ptrlist* oldl1 = l1;
-    while (l1->next) {
-        l1 = l1->next;
-    }
-    l1->next = l2;
-    return oldl1;
-}
-
-/*
- * Convert postfix regular expression to NFA.
- * Return start state.
- */
-
-static State* post2nfa(char* postfix) {
-    if (postfix == NULL) {
-        return NULL;
-    }
-    Frag  stack[256];
-    Frag* stackp = stack;
-#define push(s) *stackp++ = s
-#define pop()   *--stackp
-    for (char* p = postfix; *p; p++) {
-        switch (*p) {
+static State* get_nfa(Memory* memory, const char* postfix_expr) {
+    Stack stack = {
+        .states = memory->stack,
+        .len = 0,
+    };
+    for (char token = *postfix_expr++; token != '\0'; token = *postfix_expr++)
+    {
+        switch (token) {
+        case OP_CONCAT: {
+            if (stack.len < 2) {
+                exit(EXIT_FAILURE);
+            }
+            State* b = stack.states[--stack.len];
+            State* a = stack.states[stack.len - 1];
+            switch (a->type) {
+            case TOKEN: {
+                if (a->last.state == NULL) {
+                    a->next.state = b;
+                    a->last.state = b;
+                } else {
+                    switch (a->last.state->type) {
+                    case TOKEN: {
+                        a->last.state->next.state = b;
+                        a->last.state->last.state = b;
+                        a->last.state = b;
+                        break;
+                    }
+                    case SPLIT: {
+                        break;
+                    }
+                    }
+                }
+                break;
+            }
+            case SPLIT: {
+                break;
+            }
+            }
+            break;
+        }
         default: {
-            State* s = state(*p, NULL, NULL);
-            push(frag(s, list1(&s->out)));
-            break;
-        }
-        case '.': { /* catenate */
-            Frag e2 = pop();
-            Frag e1 = pop();
-            patch(e1.out, e2.start);
-            push(frag(e1.start, e2.out));
-            break;
-        }
-        case '|': { /* alternate */
-            Frag   e2 = pop();
-            Frag   e1 = pop();
-            State* s = state(Split, e1.start, e2.start);
-            push(frag(s, append(e1.out, e2.out)));
-            break;
-        }
-        case '?': { /* zero or one */
-            Frag   e = pop();
-            State* s = state(Split, e.start, NULL);
-            push(frag(s, append(e.out, list1(&s->out1))));
-            break;
-        }
-        case '*': { /* zero or more */
-            Frag   e = pop();
-            State* s = state(Split, e.start, NULL);
-            patch(e.out, s);
-            push(frag(s, list1(&s->out1)));
-            break;
-        }
-        case '+': { /* one or more */
-            Frag   e = pop();
-            State* s = state(Split, e.start, NULL);
-            patch(e.out, s);
-            push(frag(e.start, list1(&s->out1)));
-            break;
+            if (STACK_CAP <= stack.len) {
+                exit(EXIT_FAILURE);
+            }
+            State* state = state_new(memory);
+            state->type = TOKEN;
+            state->token = token;
+            stack.states[stack.len++] = state;
         }
         }
     }
-    Frag e = pop();
-    if (stackp != stack) {
-        return NULL;
+    if (stack.len != 1) {
+        exit(EXIT_FAILURE);
     }
-    patch(e.out, &matchstate);
-    return e.start;
-#undef pop
-#undef push
+    return stack.states[--stack.len];
 }
 
-typedef struct List List;
-struct List {
-    State** s;
-    int     n;
-};
-List       l1, l2;
-static int listid;
-
-void addstate(List*, State*);
-void step(List*, int, List*);
-
-/* Compute initial state list */
-static List* startlist(State* start, List* l) {
-    l->n = 0;
-    listid++;
-    addstate(l, start);
-    return l;
-}
-
-/* Check whether state list contains a match. */
-static int ismatch(List* l) {
-    for (int i = 0; i < l->n; i++) {
-        if (l->s[i] == &matchstate) {
-            return 1;
+static Bool get_match(Memory* memory, State* nfa, const char* string) {
+    Stack stack = {
+        .states = memory->stack,
+        .len = 0,
+    };
+    Stack next = {
+        .states = memory->stack_swap,
+        .len = 0,
+    };
+    stack.states[stack.len++] = nfa;
+    Bool end;
+    for (char token = *string++; token != '\0'; token = *string++) {
+        end = FALSE;
+        for (u8 i = 0; i < stack.len; ++i) {
+            State* state = stack.states[i];
+            switch (state->type) {
+            case TOKEN: {
+                if (state->token == token) {
+                    if (STACK_CAP <= next.len) {
+                        exit(EXIT_FAILURE);
+                    }
+                    State* next_state = state->next.state;
+                    if (next_state != NULL) {
+                        next.states[next.len++] = next_state;
+                    } else {
+                        end = TRUE;
+                    }
+                }
+                break;
+            }
+            case SPLIT: {
+                break;
+            }
+            }
         }
+        State** swap = stack.states;
+        stack.states = next.states;
+        stack.len = next.len;
+        next.states = swap;
+        next.len = 0;
     }
-    return 0;
+    return end;
 }
 
-/* Add s to l, following unlabeled arrows. */
-void addstate(List* l, State* s) {
-    if (s == NULL || s->lastlist == listid) {
-        return;
+int main(void) {
+    printf("sizeof(State)     : %lu\n"
+           "sizeof(StateType) : %lu\n"
+           "sizeof(Memory)    : %lu\n",
+           sizeof(State),
+           sizeof(StateType),
+           sizeof(Memory));
+    Memory* memory = calloc(1, sizeof(Memory));
+    if (memory == NULL) {
+        return EXIT_FAILURE;
     }
-    s->lastlist = listid;
-    if (s->c == Split) {
-        /* follow unlabeled arrows */
-        addstate(l, s->out);
-        addstate(l, s->out1);
-        return;
+    // const char* postfix_expr = "abc|*.d.";
+    // const char* postfix_expr = "ab.c.";
+    // const char* input = "abc";
+    const char* postfix_expr = "ab.c.d.";
+    const char* input = "abcd";
+    Bool output = get_match(memory, get_nfa(memory, postfix_expr), input);
+    printf("\"%s\" @ %s -> ", input, postfix_expr);
+    switch (output) {
+    case TRUE: {
+        printf("TRUE\n");
+        break;
     }
-    l->s[l->n++] = s;
-}
-
-/*
- * Step the NFA from the states in clist
- * past the character c,
- * to create next NFA state set nlist.
- */
-void step(List* clist, int c, List* nlist) {
-    listid++;
-    nlist->n = 0;
-    for (int i = 0; i < clist->n; i++) {
-        State* s = clist->s[i];
-        if (s->c == c)
-            addstate(nlist, s->out);
+    case FALSE: {
+        printf("FALSE\n");
+        break;
     }
-}
-
-/* Run NFA to determine whether it matches s. */
-static int match(State* start, char* s) {
-    List* clist = startlist(start, &l1);
-    List* nlist = &l2;
-    for (; *s; s++) {
-        int c = *s & 0xFF;
-        step(clist, c, nlist);
-        List* t = clist;
-        clist = nlist;
-        nlist = t; /* swap clist, nlist */
     }
-    return ismatch(clist);
-}
-
-int main(int argc, char** argv) {
-    if (argc < 3) {
-        fprintf(stderr, "usage: nfa regexp string...\n");
-        return 1;
-    }
-    char* post = re2post(argv[1]);
-    if (post == NULL) {
-        fprintf(stderr, "bad regexp %s\n", argv[1]);
-        return 1;
-    }
-    State* start = post2nfa(post);
-    if (start == NULL) {
-        fprintf(stderr, "error in post2nfa %s\n", post);
-        return 1;
-    }
-    l1.s = malloc((long unsigned int)nstate * sizeof(l1.s[0]));
-    l2.s = malloc((long unsigned int)nstate * sizeof(l2.s[0]));
-    for (int i = 2; i < argc; i++) {
-        if (match(start, argv[i])) {
-            printf("Match found! (\"%s\", \"%s\") -> %s\n",
-                   post,
-                   argv[i],
-                   argv[i]);
-        } else {
-            printf("No match! (\"%s\", \"%s\")\n", post, argv[i]);
-        }
-    }
-    for (int i = 0; i < STATE_LIST_INDEX; ++i) {
-        free(STATE_LIST[i]);
-    }
-    free(l1.s);
-    free(l2.s);
-    return 0;
+    free(memory);
+    return EXIT_SUCCESS;
 }
