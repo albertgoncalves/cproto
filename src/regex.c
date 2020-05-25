@@ -6,8 +6,9 @@ typedef unsigned char u8;
 #define STATE_CAP 64
 #define STACK_CAP 64
 
-#define OP_CONCAT '.'
-#define OP_EITHER '|'
+#define OP_CONCAT       '.'
+#define OP_EITHER       '|'
+#define OP_ZERO_OR_MANY '*'
 
 #define PRINT_ERROR(function)                                   \
     fprintf(stderr,                                             \
@@ -125,7 +126,23 @@ static void set_either(Memory* memory, LinkStack* stack) {
     stack->links[stack->len++] = link;
 }
 
-#include <string.h>
+static void set_zero_or_many(Memory* memory, LinkStack* stack) {
+    if (stack->len < 1) {
+        PRINT_ERROR("set_zero_or_many");
+        exit(EXIT_FAILURE);
+    }
+    Link a = stack->links[--stack->len];
+    Link link = {
+        .first = state_new(memory),
+        .last = state_new(memory),
+    };
+    link.last->end = TRUE;
+    link.first->next = link.last;
+    link.first->next_split = a.first;
+    a.last->next = link.last;
+    a.last->next_split = a.first;
+    stack->links[stack->len++] = link;
+}
 
 static Link get_nfa(Memory* memory, const char* postfix_expr) {
     memory->state_len = 0;
@@ -142,6 +159,10 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
         }
         case OP_EITHER: {
             set_either(memory, &stack);
+            break;
+        }
+        case OP_ZERO_OR_MANY: {
+            set_zero_or_many(memory, &stack);
             break;
         }
         default: {
@@ -230,10 +251,15 @@ static Bool get_match(Memory* memory, Link nfa, const char* string) {
     return FALSE;
 }
 
+static Bool TEST_STATUS = TRUE;
+
 #define TEST(postfix_expr, input, expected)                            \
     {                                                                  \
         if (get_match(memory, get_nfa(memory, postfix_expr), input) != \
             expected) {                                                \
+            if (TEST_STATUS == TRUE) {                                 \
+                TEST_STATUS = FALSE;                                   \
+            }                                                          \
             printf("\033[1;31mTest failed\033[0m @ "                   \
                    "(\033[1m\"%s\", \"%s\"\033[0m)\n",                 \
                    postfix_expr,                                       \
@@ -274,6 +300,24 @@ int main(void) {
     TEST("ab|c.", "a", FALSE);
     TEST("ab|c.", "b", FALSE);
     TEST("ab|c.", "c", FALSE);
+    TEST("abc|*.d.", "abcd", TRUE);
+    TEST("abc|*.d.", "abd", TRUE);
+    TEST("abc|*.d.", "acd", TRUE);
+    TEST("abc|*.d.", "abbd", TRUE);
+    TEST("abc|*.d.", "accd", TRUE);
+    TEST("abc|*.d.", "bcd", FALSE);
+    TEST("abc|*.d.", "bd", FALSE);
+    TEST("abc|*.d.", "cd", FALSE);
+    TEST("abc|*.d.", "bbd", FALSE);
+    TEST("abc|*.d.", "ccd", FALSE);
+    TEST("abc|*.d.", "abc", FALSE);
+    TEST("abc|*.d.", "ab", FALSE);
+    TEST("abc|*.d.", "ac", FALSE);
+    TEST("abc|*.d.", "abb", FALSE);
+    TEST("abc|*.d.", "acc", FALSE);
+    if (TEST_STATUS == TRUE) {
+        printf("\033[1;36mAll tests passed!\033[0m\n");
+    }
     free(memory);
     return EXIT_SUCCESS;
 }
