@@ -82,7 +82,6 @@ static void set_token(Memory* memory, LinkStack* stack, char token) {
         .first = state_new(memory),
         .last = state_new(memory),
     };
-    link.last->end = TRUE;
     link.first->type = TOKEN;
     link.first->token = token;
     link.first->next = link.last;
@@ -97,7 +96,6 @@ static void set_concat(LinkStack* stack) {
     Link b = stack->links[--stack->len];
     Link a = stack->links[--stack->len];
     a.last->next = b.first;
-    a.last->end = FALSE;
     Link link = {
         .first = a.first,
         .last = b.last,
@@ -116,13 +114,10 @@ static void set_either(Memory* memory, LinkStack* stack) {
         .first = state_new(memory),
         .last = state_new(memory),
     };
-    link.last->end = TRUE;
     link.first->next = a.first;
     link.first->next_split = b.first;
     a.last->next = link.last;
     b.last->next = link.last;
-    a.last->end = FALSE;
-    b.last->end = FALSE;
     stack->links[stack->len++] = link;
 }
 
@@ -136,7 +131,6 @@ static void set_zero_or_many(Memory* memory, LinkStack* stack) {
         .first = state_new(memory),
         .last = state_new(memory),
     };
-    link.last->end = TRUE;
     link.first->next = link.last;
     link.first->next_split = a.first;
     a.last->next = link.last;
@@ -174,10 +168,26 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
         PRINT_ERROR("get_nfa");
         exit(EXIT_FAILURE);
     }
-    return stack.links[0];
+    Link link = stack.links[0];
+    link.last->end = TRUE;
+    return link;
 }
 
 static Bool get_match(Memory* memory, Link nfa, const char* string) {
+    char token = *string;
+    if ((token == '\0') && (nfa.first->token == EPSILON)) {
+        State* last_state = nfa.first;
+        while (last_state != NULL) {
+            if (last_state->type == EPSILON) {
+                if (last_state->end == TRUE) {
+                    return TRUE;
+                }
+                last_state = last_state->next;
+            } else {
+                return FALSE;
+            }
+        }
+    }
     StateStack all_states = {
         .states = memory->state_stack_a,
         .len = 0,
@@ -191,7 +201,8 @@ static Bool get_match(Memory* memory, Link nfa, const char* string) {
         .len = 0,
     };
     all_states.states[all_states.len++] = nfa.first;
-    for (char token = *string++; token != '\0'; token = *string++) {
+    while (token != '\0') {
+        char peek = *++string;
         for (;;) {
             for (u8 i = 0; i < all_states.len; ++i) {
                 State* state = all_states.states[i];
@@ -231,12 +242,20 @@ static Bool get_match(Memory* memory, Link nfa, const char* string) {
                 if (any_match == FALSE) {
                     any_match = TRUE;
                 }
-                if (*string == '\0') {
-                    if (state->next->end == TRUE) {
-                        return TRUE;
-                    }
-                }
                 if (state->next != NULL) {
+                    if (peek == '\0') {
+                        State* last_state = state->next;
+                        while (last_state != NULL) {
+                            if (last_state->type == EPSILON) {
+                                if (last_state->end == TRUE) {
+                                    return TRUE;
+                                }
+                                last_state = last_state->next;
+                            } else {
+                                last_state = NULL;
+                            }
+                        }
+                    }
                     all_states.states[all_states.len++] = state->next;
                 }
                 if (state->next_split != NULL) {
@@ -247,6 +266,7 @@ static Bool get_match(Memory* memory, Link nfa, const char* string) {
         if (any_match == FALSE) {
             return FALSE;
         }
+        token = peek;
     }
     return FALSE;
 }
@@ -315,6 +335,56 @@ int main(void) {
     TEST("abc|*.d.", "ac", FALSE);
     TEST("abc|*.d.", "abb", FALSE);
     TEST("abc|*.d.", "acc", FALSE);
+    TEST("ab|", "a", TRUE);
+    TEST("ab|", "b", TRUE);
+    TEST("ab|cd|.", "ac", TRUE);
+    TEST("ab|cd|.ef|.", "ace", TRUE);
+    TEST("ab|cd|.ef|.", "bdf", TRUE);
+    TEST("ab|*c.", "c", TRUE);
+    TEST("ab|*c.", "ac", TRUE);
+    TEST("ab|*c.", "bc", TRUE);
+    TEST("ab|*c.", "abc", TRUE);
+    TEST("ab|*c.", "bac", TRUE);
+    TEST("ab|*c.", "aabbc", TRUE);
+    TEST("ab|*c.", "cc", FALSE);
+    TEST("ab|*c.", "cab", FALSE);
+    TEST("ab|*c.", "cabc", FALSE);
+    TEST("ab|*c.", "cba", FALSE);
+    TEST("ab|*c.", "cc", FALSE);
+    TEST("ab.c.", "abc", TRUE);
+    TEST("ab.c.", "abcd", FALSE);
+    TEST("a", "", FALSE);
+    TEST("a", "a", TRUE);
+    TEST("a", "aaaaaaa", FALSE);
+    TEST("a*", "", TRUE);
+    TEST("a*", "a", TRUE);
+    TEST("a*", "aaaaaaa", TRUE);
+    TEST("aa*.", "", FALSE);
+    TEST("aa*.", "a", TRUE);
+    TEST("aa*.", "aaaaaaa", TRUE);
+    TEST("a*b*.", "", TRUE);
+    TEST("a*b*.", "a", TRUE);
+    TEST("a*b*.", "b", TRUE);
+    TEST("a*b*.", "ab", TRUE);
+    TEST("a*b*.", "aa", TRUE);
+    TEST("a*b*.", "bb", TRUE);
+    TEST("a*b*.", "aab", TRUE);
+    TEST("a*b*.", "abb", TRUE);
+    TEST("a*b*.", "c", FALSE);
+    TEST("a*b*.", "ca", FALSE);
+    TEST("a*b*.", "cb", FALSE);
+    TEST("a*b*.", "cab", FALSE);
+    TEST("a*b*.", "caa", FALSE);
+    TEST("a*b*.", "cbb", FALSE);
+    TEST("a*b*.", "caab", FALSE);
+    TEST("a*b*.", "cabb", FALSE);
+    TEST("a*b*.", "ac", FALSE);
+    TEST("a*b*.", "bc", FALSE);
+    TEST("a*b*.", "abc", FALSE);
+    TEST("a*b*.", "aac", FALSE);
+    TEST("a*b*.", "bbc", FALSE);
+    TEST("a*b*.", "aabc", FALSE);
+    TEST("a*b*.", "abbc", FALSE);
     if (TEST_STATUS == TRUE) {
         printf("\033[1;36mAll tests passed!\033[0m\n");
     }
