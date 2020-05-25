@@ -7,6 +7,7 @@ typedef unsigned char u8;
 #define STACK_CAP 64
 
 #define OP_CONCAT '.'
+#define OP_EITHER '|'
 
 typedef enum {
     FALSE = 0,
@@ -34,27 +35,35 @@ typedef struct {
 } Link;
 
 typedef struct {
-    State states[STATE_CAP];
-    Link  stack_a[STACK_CAP];
-    Link  stack_b[STACK_CAP];
-    Link  stack_c[STACK_CAP];
-    u8    state_len;
+    State  states[STATE_CAP];
+    Link   link_stack[STACK_CAP];
+    State* state_stack_a[STACK_CAP];
+    State* state_stack_b[STACK_CAP];
+    State* state_stack_c[STACK_CAP];
+    u8     state_len;
 } Memory;
 
 typedef struct {
     Link* links;
     u8    len;
-} Stack;
+} LinkStack;
+
+typedef struct {
+    State** states;
+    u8      len;
+} StateStack;
 
 static State* state_new(Memory* memory) {
     if (STATE_CAP <= memory->state_len) {
+        fprintf(stderr, "exit @ state_new(...)\n");
         exit(EXIT_FAILURE);
     }
     return &memory->states[memory->state_len++];
 }
 
-static void set_token(Memory* memory, Stack* stack, char token) {
+static void set_token(Memory* memory, LinkStack* stack, char token) {
     if (STACK_CAP <= stack->len) {
+        fprintf(stderr, "exit @ set_token(...)\n");
         exit(EXIT_FAILURE);
     }
     Link link = {
@@ -68,8 +77,9 @@ static void set_token(Memory* memory, Stack* stack, char token) {
     stack->links[stack->len++] = link;
 }
 
-static void set_concat(Stack* stack) {
+static void set_concat(LinkStack* stack) {
     if (stack->len < 2) {
+        fprintf(stderr, "exit @ set_concat(...)\n");
         exit(EXIT_FAILURE);
     }
     Link b = stack->links[--stack->len];
@@ -83,9 +93,30 @@ static void set_concat(Stack* stack) {
     stack->links[stack->len++] = link;
 }
 
+static void set_either(Memory* memory, LinkStack* stack) {
+    if (stack->len < 2) {
+        fprintf(stderr, "exit @ set_either(...)\n");
+        exit(EXIT_FAILURE);
+    }
+    Link b = stack->links[--stack->len];
+    Link a = stack->links[--stack->len];
+    Link link = {
+        .first = state_new(memory),
+        .last = state_new(memory),
+    };
+    link.last->end = TRUE;
+    link.first->next = a.first;
+    link.first->next_split = b.first;
+    a.last->next = link.last;
+    b.last->next = link.last;
+    a.last->end = FALSE;
+    b.last->end = FALSE;
+    stack->links[stack->len++] = link;
+}
+
 static Link get_nfa(Memory* memory, const char* postfix_expr) {
-    Stack stack = {
-        .links = memory->stack_a,
+    LinkStack stack = {
+        .links = memory->link_stack,
         .len = 0,
     };
     for (char token = *postfix_expr++; token != '\0'; token = *postfix_expr++)
@@ -95,47 +126,52 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
             set_concat(&stack);
             break;
         }
+        case OP_EITHER: {
+            set_either(memory, &stack);
+            break;
+        }
         default: {
             set_token(memory, &stack, token);
         }
         }
     }
     if (stack.len != 1) {
+        fprintf(stderr, "exit @ get_nfa(...)\n");
         exit(EXIT_FAILURE);
     }
     return stack.links[0];
 }
 
 static Bool get_match(Memory* memory, Link nfa, const char* string) {
-    Stack mixed_states = {
-        .links = memory->stack_a,
+    StateStack all_states = {
+        .states = memory->state_stack_a,
         .len = 0,
     };
-    Stack buffer = {
-        .links = memory->stack_b,
+    StateStack buffer = {
+        .states = memory->state_stack_b,
         .len = 0,
     };
-    Stack nfa_tokens = {
-        .links = memory->stack_c,
+    StateStack token_states = {
+        .states = memory->state_stack_c,
         .len = 0,
     };
-    mixed_states.links[mixed_states.len++] = nfa;
+    all_states.states[all_states.len++] = nfa.first;
     for (char token = *string++; token != '\0'; token = *string++) {
         for (;;) {
-            for (u8 i = 0; i < mixed_states.len; ++i) {
-                State* state = mixed_states.links[i].first;
+            for (u8 i = 0; i < all_states.len; ++i) {
+                State* state = all_states.states[i];
                 switch (state->type) {
                 case EPSILON: {
                     if (state->next != NULL) {
-                        buffer.links[buffer.len++].first = state->next;
+                        buffer.states[buffer.len++] = state->next;
                     }
                     if (state->next_split != NULL) {
-                        buffer.links[buffer.len++].first = state->next_split;
+                        buffer.states[buffer.len++] = state->next_split;
                     }
                     break;
                 }
                 case TOKEN: {
-                    nfa_tokens.links[nfa_tokens.len++].first = state;
+                    token_states.states[token_states.len++] = state;
                     break;
                 }
                 }
@@ -143,33 +179,52 @@ static Bool get_match(Memory* memory, Link nfa, const char* string) {
             if (buffer.len == 0) {
                 break;
             }
-            Link* swap = mixed_states.links;
-            mixed_states.links = buffer.links;
-            mixed_states.len = buffer.len;
-            buffer.links = swap;
+            State** swap = all_states.states;
+            all_states.states = buffer.states;
+            all_states.len = buffer.len;
+            buffer.states = swap;
             buffer.len = 0;
         }
-        if (nfa_tokens.len == 0) {
+        if (token_states.len == 0) {
             return FALSE;
         }
+        all_states.len = 0;
+        Bool any_match = FALSE;
         do {
-            State* state = nfa_tokens.links[--nfa_tokens.len].first;
+            State* state = token_states.states[--token_states.len];
             if (token == state->token) {
+                if (any_match == FALSE) {
+                    any_match = TRUE;
+                }
                 if (*string == '\0') {
-                    return state->next->end;
+                    if (state->next->end == TRUE) {
+                        return TRUE;
+                    }
                 }
                 if (state->next != NULL) {
-                    mixed_states.links[mixed_states.len++].first = state->next;
+                    all_states.states[all_states.len++] = state->next;
                 }
                 if (state->next_split != NULL) {
-                    mixed_states.links[mixed_states.len++].first =
-                        state->next_split;
+                    all_states.states[all_states.len++] = state->next_split;
                 }
             }
-        } while (0 < nfa_tokens.len);
+        } while (0 < token_states.len);
+        if (any_match == FALSE) {
+            return FALSE;
+        }
     }
     return FALSE;
 }
+
+#define TEST(postfix_expr, input, expected)                                  \
+    if (get_match(memory, get_nfa(memory, postfix_expr), input) != expected) \
+    {                                                                        \
+        printf("\033[1;31mTest failed\033[0m @ "                             \
+               "(\033[1m\"%s\", \"%s\"\033[0m)\n",                           \
+               postfix_expr,                                                 \
+               input);                                                       \
+        exit(EXIT_FAILURE);                                                  \
+    }
 
 int main(void) {
     printf("sizeof(State)     : %lu\n"
@@ -189,23 +244,11 @@ int main(void) {
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
     if (memory == NULL) {
+        fprintf(stderr, "exit @ main(...)\n");
         return EXIT_FAILURE;
     }
-    const char* postfix_expr = "ab.c.d.";
-    const char* input = "abcd";
-    Link        nfa = get_nfa(memory, postfix_expr);
-    Bool        output = get_match(memory, nfa, input);
-    printf("\"%s\" @ %s -> ", input, postfix_expr);
-    switch (output) {
-    case TRUE: {
-        printf("TRUE\n");
-        break;
-    }
-    case FALSE: {
-        printf("FALSE\n");
-        break;
-    }
-    }
+    TEST("ab.c.d.", "abcd", FALSE);
+    TEST("ab|c.", "bc", TRUE);
     free(memory);
     return EXIT_SUCCESS;
 }
