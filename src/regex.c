@@ -3,8 +3,8 @@
 
 typedef unsigned char u8;
 
-#define STATE_CAP 64
-#define STACK_CAP 64
+#define STATE_CAP 20
+#define STACK_CAP 12
 
 #define OP_CONCAT       '.'
 #define OP_EITHER       '|'
@@ -46,6 +46,7 @@ typedef struct {
     State* state_stack_a[STACK_CAP];
     State* state_stack_b[STACK_CAP];
     State* state_stack_c[STACK_CAP];
+    State* state_stack_d[STACK_CAP];
     u8     state_len;
 } Memory;
 
@@ -173,71 +174,118 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
     return link;
 }
 
-static Bool get_match(Memory* memory, Link nfa, const char* string) {
-    char token = *string;
-    if ((token == '\0') && (nfa.first->token == EPSILON)) {
-        State* last_state = nfa.first;
-        while (last_state != NULL) {
-            if (last_state->type == EPSILON) {
-                if (last_state->end == TRUE) {
-                    return TRUE;
-                }
-                last_state = last_state->next;
-            } else {
-                return FALSE;
-            }
-        }
+#define PUSH(stack, state)                 \
+    {                                      \
+        if (STACK_CAP <= stack.len) {      \
+            PRINT_ERROR("get_match");      \
+            exit(EXIT_FAILURE);            \
+        }                                  \
+        stack.states[stack.len++] = state; \
     }
-    StateStack all_states = {
+
+static Bool get_empty_match(Memory* memory, Link link) {
+    if (link.first->type != EPSILON) {
+        return FALSE;
+    }
+    StateStack stack = {
         .states = memory->state_stack_a,
         .len = 0,
     };
-    StateStack buffer = {
+    PUSH(stack, link.first);
+    while (stack.len != 0) {
+        State* last_state = stack.states[--stack.len];
+        switch (last_state->type) {
+        case EPSILON: {
+            if (last_state->end == TRUE) {
+                return TRUE;
+            }
+            if (last_state->next != NULL) {
+                PUSH(stack, last_state->next);
+            }
+            if (last_state->next_split != NULL) {
+                PUSH(stack, last_state->next_split);
+            }
+            break;
+        }
+        case TOKEN: {
+            break;
+        }
+        }
+    }
+    return FALSE;
+}
+
+static Bool get_match(Memory* memory, Link link, const char* string) {
+    char token = *string;
+    if (token == '\0') {
+        return get_empty_match(memory, link);
+    }
+    StateStack stack_all = {
+        .states = memory->state_stack_a,
+        .len = 0,
+    };
+    StateStack stack_buffer = {
         .states = memory->state_stack_b,
         .len = 0,
     };
-    StateStack token_states = {
+    StateStack stack_tokens = {
         .states = memory->state_stack_c,
         .len = 0,
     };
-    all_states.states[all_states.len++] = nfa.first;
+    StateStack stack_visited = {
+        .states = memory->state_stack_d,
+        .len = 0,
+    };
+    PUSH(stack_all, link.first);
     while (token != '\0') {
-        char peek = *++string;
         for (;;) {
-            for (u8 i = 0; i < all_states.len; ++i) {
-                State* state = all_states.states[i];
+            for (u8 i = 0; i < stack_all.len; ++i) {
+                State* state = stack_all.states[i];
+                Bool   visited = FALSE;
+                for (u8 j = 0; j < stack_visited.len; ++j) {
+                    if (stack_visited.states[j] == state) {
+                        visited = TRUE;
+                        break;
+                    }
+                }
+                if (visited == TRUE) {
+                    continue;
+                }
                 switch (state->type) {
                 case EPSILON: {
                     if (state->next != NULL) {
-                        buffer.states[buffer.len++] = state->next;
+                        PUSH(stack_buffer, state->next);
                     }
                     if (state->next_split != NULL) {
-                        buffer.states[buffer.len++] = state->next_split;
+                        PUSH(stack_buffer, state->next_split);
                     }
                     break;
                 }
                 case TOKEN: {
-                    token_states.states[token_states.len++] = state;
+                    PUSH(stack_tokens, state);
                     break;
                 }
                 }
+                PUSH(stack_visited, state);
             }
-            if (buffer.len == 0) {
+            if (stack_buffer.len == 0) {
                 break;
             }
-            State** swap = all_states.states;
-            all_states.states = buffer.states;
-            all_states.len = buffer.len;
-            buffer.states = swap;
-            buffer.len = 0;
+            State** swap = stack_all.states;
+            stack_all.states = stack_buffer.states;
+            stack_all.len = stack_buffer.len;
+            stack_buffer.states = swap;
+            stack_buffer.len = 0;
         }
-        if (token_states.len == 0) {
+        if (stack_tokens.len == 0) {
             return FALSE;
         }
-        all_states.len = 0;
+        stack_all.len = 0;
+        stack_visited.len = 0;
         Bool any_match = FALSE;
-        do {
-            State* state = token_states.states[--token_states.len];
+        char peek = *++string;
+        for (u8 i = 0; i < stack_tokens.len; ++i) {
+            State* state = stack_tokens.states[i];
             if (token == state->token) {
                 if (any_match == FALSE) {
                     any_match = TRUE;
@@ -246,44 +294,49 @@ static Bool get_match(Memory* memory, Link nfa, const char* string) {
                     if (peek == '\0') {
                         State* last_state = state->next;
                         while (last_state != NULL) {
-                            if (last_state->type == EPSILON) {
+                            switch (last_state->type) {
+                            case EPSILON: {
                                 if (last_state->end == TRUE) {
                                     return TRUE;
                                 }
                                 last_state = last_state->next;
-                            } else {
-                                last_state = NULL;
+                                break;
+                            }
+                            case TOKEN: {
+                                return FALSE;
+                            }
                             }
                         }
                     }
-                    all_states.states[all_states.len++] = state->next;
-                }
-                if (state->next_split != NULL) {
-                    all_states.states[all_states.len++] = state->next_split;
+                    PUSH(stack_all, state->next);
                 }
             }
-        } while (0 < token_states.len);
+        }
         if (any_match == FALSE) {
             return FALSE;
         }
+        stack_tokens.len = 0;
         token = peek;
     }
     return FALSE;
 }
 
-static Bool TEST_STATUS = TRUE;
+#undef PUSH
+
+static u8 TESTS_PASSED = 0;
+static u8 TESTS_FAILED = 0;
 
 #define TEST(postfix_expr, input, expected)                            \
     {                                                                  \
-        if (get_match(memory, get_nfa(memory, postfix_expr), input) != \
+        if (get_match(memory, get_nfa(memory, postfix_expr), input) == \
             expected) {                                                \
-            if (TEST_STATUS == TRUE) {                                 \
-                TEST_STATUS = FALSE;                                   \
-            }                                                          \
+            ++TESTS_PASSED;                                            \
+        } else {                                                       \
             printf("\033[1;31mTest failed\033[0m @ "                   \
                    "(\033[1m\"%s\", \"%s\"\033[0m)\n",                 \
                    postfix_expr,                                       \
                    input);                                             \
+            ++TESTS_FAILED;                                            \
         }                                                              \
     }
 
@@ -357,11 +410,14 @@ int main(void) {
     TEST("a", "a", TRUE);
     TEST("a", "aaaaaaa", FALSE);
     TEST("a*", "", TRUE);
+    TEST("a*", "b", FALSE);
     TEST("a*", "a", TRUE);
     TEST("a*", "aaaaaaa", TRUE);
     TEST("aa*.", "", FALSE);
     TEST("aa*.", "a", TRUE);
     TEST("aa*.", "aaaaaaa", TRUE);
+    TEST("aa*.", "baaaaaaa", FALSE);
+    TEST("aa*.", "aaaaaaab", FALSE);
     TEST("a*b*.", "", TRUE);
     TEST("a*b*.", "a", TRUE);
     TEST("a*b*.", "b", TRUE);
@@ -385,8 +441,56 @@ int main(void) {
     TEST("a*b*.", "bbc", FALSE);
     TEST("a*b*.", "aabc", FALSE);
     TEST("a*b*.", "abbc", FALSE);
-    if (TEST_STATUS == TRUE) {
-        printf("\033[1;36mAll tests passed!\033[0m\n");
+    TEST("abc|*d.|", "a", TRUE);
+    TEST("abc|*d.|", "bd", TRUE);
+    TEST("abc|*d.|", "cd", TRUE);
+    TEST("abc|*d.|", "bbd", TRUE);
+    TEST("abc|*d.|", "ccd", TRUE);
+    TEST("abc|*d.|", "bbcd", TRUE);
+    TEST("abc|*d.|", "bccd", TRUE);
+    TEST("abc|*d.|", "bcd", TRUE);
+    TEST("abc|*d.|", "abcd", FALSE);
+    TEST("abc|*d.|", "", FALSE);
+    TEST("a*b|", "", TRUE);
+    TEST("a*b|", "a", TRUE);
+    TEST("a*b|", "aa", TRUE);
+    TEST("a*b|", "b", TRUE);
+    TEST("ab*|", "", TRUE);
+    TEST("ab*|", "a", TRUE);
+    TEST("ab*|", "b", TRUE);
+    TEST("ab*|", "bb", TRUE);
+    TEST("ca*b|.", "c", TRUE);
+    TEST("ca*b|.", "ca", TRUE);
+    TEST("ca*b|.", "caa", TRUE);
+    TEST("ca*b|.", "cb", TRUE);
+    TEST("cab*|*.", "c", TRUE);
+    TEST("cab*|*.", "ca", TRUE);
+    TEST("cab*|*.", "cb", TRUE);
+    TEST("cab*|*.", "cbb", TRUE);
+    TEST("cab*|*.", "cabbabbabb", TRUE);
+    TEST("cab*|*.", "caabbabbabb", TRUE);
+    TEST("ca*b|.", "", FALSE);
+    TEST("ca*b|.", "a", FALSE);
+    TEST("ca*b|.", "aa", FALSE);
+    TEST("ca*b|.", "b", FALSE);
+    TEST("cab*|*.", "", FALSE);
+    TEST("cab*|*.", "a", FALSE);
+    TEST("cab*|*.", "b", FALSE);
+    TEST("cab*|*.", "bb", FALSE);
+    TEST("cab*|*.", "abbabbabb", FALSE);
+    TEST("cab*|*.", "aabbabbabb", FALSE);
+    if (0 < TESTS_FAILED) {
+        printf("\n");
+    }
+    if (TESTS_PASSED == 1) {
+        printf("\033[1;36m  1 test  passed\033[0m\n");
+    } else if (1 < TESTS_PASSED) {
+        printf("\033[1;36m%3hhu tests passed\033[0m\n", TESTS_PASSED);
+    }
+    if (TESTS_FAILED == 1) {
+        printf("\033[1;33m  1 test  failed\033[0m\n");
+    } else if (1 < TESTS_FAILED) {
+        printf("\033[1;33m%3hhu tests failed\033[0m\n", TESTS_FAILED);
     }
     free(memory);
     return EXIT_SUCCESS;
