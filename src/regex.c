@@ -9,6 +9,11 @@ typedef unsigned char u8;
 #define OP_CONCAT '.'
 #define OP_EITHER '|'
 
+#define PRINT_ERROR(function)                                   \
+    fprintf(stderr,                                             \
+            "\033[1;31mError\033[0m @ \033[1m%s(...)\033[0m\n", \
+            function);
+
 typedef enum {
     FALSE = 0,
     TRUE,
@@ -55,15 +60,21 @@ typedef struct {
 
 static State* state_new(Memory* memory) {
     if (STATE_CAP <= memory->state_len) {
-        fprintf(stderr, "exit @ state_new(...)\n");
+        PRINT_ERROR("state_new");
         exit(EXIT_FAILURE);
     }
-    return &memory->states[memory->state_len++];
+    State* state = &memory->states[memory->state_len++];
+    state->next = NULL;
+    state->next_split = NULL;
+    state->type = EPSILON;
+    state->token = '\0';
+    state->end = FALSE;
+    return state;
 }
 
 static void set_token(Memory* memory, LinkStack* stack, char token) {
     if (STACK_CAP <= stack->len) {
-        fprintf(stderr, "exit @ set_token(...)\n");
+        PRINT_ERROR("set_token");
         exit(EXIT_FAILURE);
     }
     Link link = {
@@ -79,7 +90,7 @@ static void set_token(Memory* memory, LinkStack* stack, char token) {
 
 static void set_concat(LinkStack* stack) {
     if (stack->len < 2) {
-        fprintf(stderr, "exit @ set_concat(...)\n");
+        PRINT_ERROR("set_concat");
         exit(EXIT_FAILURE);
     }
     Link b = stack->links[--stack->len];
@@ -95,7 +106,7 @@ static void set_concat(LinkStack* stack) {
 
 static void set_either(Memory* memory, LinkStack* stack) {
     if (stack->len < 2) {
-        fprintf(stderr, "exit @ set_either(...)\n");
+        PRINT_ERROR("set_either");
         exit(EXIT_FAILURE);
     }
     Link b = stack->links[--stack->len];
@@ -114,7 +125,10 @@ static void set_either(Memory* memory, LinkStack* stack) {
     stack->links[stack->len++] = link;
 }
 
+#include <string.h>
+
 static Link get_nfa(Memory* memory, const char* postfix_expr) {
+    memory->state_len = 0;
     LinkStack stack = {
         .links = memory->link_stack,
         .len = 0,
@@ -136,7 +150,7 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
         }
     }
     if (stack.len != 1) {
-        fprintf(stderr, "exit @ get_nfa(...)\n");
+        PRINT_ERROR("get_nfa");
         exit(EXIT_FAILURE);
     }
     return stack.links[0];
@@ -216,14 +230,15 @@ static Bool get_match(Memory* memory, Link nfa, const char* string) {
     return FALSE;
 }
 
-#define TEST(postfix_expr, input, expected)                                  \
-    if (get_match(memory, get_nfa(memory, postfix_expr), input) != expected) \
-    {                                                                        \
-        printf("\033[1;31mTest failed\033[0m @ "                             \
-               "(\033[1m\"%s\", \"%s\"\033[0m)\n",                           \
-               postfix_expr,                                                 \
-               input);                                                       \
-        exit(EXIT_FAILURE);                                                  \
+#define TEST(postfix_expr, input, expected)                            \
+    {                                                                  \
+        if (get_match(memory, get_nfa(memory, postfix_expr), input) != \
+            expected) {                                                \
+            printf("\033[1;31mTest failed\033[0m @ "                   \
+                   "(\033[1m\"%s\", \"%s\"\033[0m)\n",                 \
+                   postfix_expr,                                       \
+                   input);                                             \
+        }                                                              \
     }
 
 int main(void) {
@@ -244,11 +259,21 @@ int main(void) {
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
     if (memory == NULL) {
-        fprintf(stderr, "exit @ main(...)\n");
+        PRINT_ERROR("main");
         return EXIT_FAILURE;
     }
-    TEST("ab.c.d.", "abcd", FALSE);
+    TEST("ab.c.d.", "abcd", TRUE);
+    TEST("ab.c.d.", "abdc", FALSE);
+    TEST("ab.c.d.", "bbcd", FALSE);
+    TEST("ab.c.d.", "abc", FALSE);
+    TEST("ab.c.d.", "bcd", FALSE);
+    TEST("ab|c.", "ac", TRUE);
     TEST("ab|c.", "bc", TRUE);
+    TEST("ab|c.", "ab", FALSE);
+    TEST("ab|c.", "ba", FALSE);
+    TEST("ab|c.", "a", FALSE);
+    TEST("ab|c.", "b", FALSE);
+    TEST("ab|c.", "c", FALSE);
     free(memory);
     return EXIT_SUCCESS;
 }
