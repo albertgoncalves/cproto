@@ -3,7 +3,7 @@
 
 typedef unsigned char u8;
 
-#define STATE_CAP 20
+#define STATE_CAP 18
 #define STACK_CAP 12
 
 #define OP_CONCAT       '.'
