@@ -421,8 +421,16 @@ int main(void) {
     TEST("aa*.", "", FALSE);
     TEST("aa*.", "a", TRUE);
     TEST("aa*.", "aaaaaaa", TRUE);
-    TEST("aa*.", "baaaaaaa", FALSE);
-    TEST("aa*.", "aaaaaaab", FALSE);
+    TEST("aa*.", "baaaaaa", FALSE);
+    TEST("aa*.", "aaaaaab", FALSE);
+    TEST("aa*.", "aaabaab", FALSE);
+    TEST("aa.a*.", "", FALSE);
+    TEST("aa.a*.", "a", FALSE);
+    TEST("aa.a*.", "aa", TRUE);
+    TEST("aa.a*.", "aaaaaaa", TRUE);
+    TEST("aa.a*.", "baaaaaa", FALSE);
+    TEST("aa.a*.", "aaaaaab", FALSE);
+    TEST("aa.a*.", "aaabaaa", FALSE);
     TEST("a*b*.", "", TRUE);
     TEST("a*b*.", "a", TRUE);
     TEST("a*b*.", "b", TRUE);
