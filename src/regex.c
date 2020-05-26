@@ -132,6 +132,10 @@ static void set_zero_or_many(Memory* memory, LinkStack* stack) {
         .first = state_new(memory),
         .last = state_new(memory),
     };
+    /* NOTE: To simplify the implementation, looping pointers should *always*
+     * be assigned to `State.next_split`. This way, we can simply follow
+     * `State.next` to find the terminal `State`.
+     */
     link.first->next = link.last;
     link.first->next_split = a.first;
     a.last->next = link.last;
@@ -174,28 +178,27 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
     return link;
 }
 
-#define PUSH(stack, state)                 \
-    {                                      \
-        if (STACK_CAP <= stack.len) {      \
-            PRINT_ERROR("get_match");      \
-            exit(EXIT_FAILURE);            \
-        }                                  \
-        stack.states[stack.len++] = state; \
+#define PUSH(stack, state)                  \
+    {                                       \
+        if (STACK_CAP <= stack.len) {       \
+            PRINT_ERROR("get_empty_match"); \
+            exit(EXIT_FAILURE);             \
+        }                                   \
+        stack.states[stack.len++] = state;  \
     }
 
-static Bool get_empty_match(Memory* memory, Link link) {
-    if (link.first->type != EPSILON) {
+static Bool get_empty_match(Memory* memory, State* state) {
+    if (state->type != EPSILON) {
         return FALSE;
     }
     StateStack stack = {
         .states = memory->state_stack_a,
         .len = 0,
     };
-    PUSH(stack, link.first);
+    PUSH(stack, state);
     while (stack.len != 0) {
         State* last_state = stack.states[--stack.len];
-        switch (last_state->type) {
-        case EPSILON: {
+        if (last_state->type == EPSILON) {
             if (last_state->end == TRUE) {
                 return TRUE;
             }
@@ -205,20 +208,26 @@ static Bool get_empty_match(Memory* memory, Link link) {
             if (last_state->next_split != NULL) {
                 PUSH(stack, last_state->next_split);
             }
-            break;
-        }
-        case TOKEN: {
-            break;
-        }
         }
     }
     return FALSE;
 }
 
+#undef PUSH
+
+#define PUSH(stack, state)                 \
+    {                                      \
+        if (STACK_CAP <= stack.len) {      \
+            PRINT_ERROR("get_match");      \
+            exit(EXIT_FAILURE);            \
+        }                                  \
+        stack.states[stack.len++] = state; \
+    }
+
 static Bool get_match(Memory* memory, Link link, const char* string) {
     char token = *string;
     if (token == '\0') {
-        return get_empty_match(memory, link);
+        return get_empty_match(memory, link.first);
     }
     StateStack stack_all = {
         .states = memory->state_stack_a,
@@ -282,37 +291,33 @@ static Bool get_match(Memory* memory, Link link, const char* string) {
         }
         stack_all.len = 0;
         stack_visited.len = 0;
-        Bool any_match = FALSE;
         char peek = *++string;
         for (u8 i = 0; i < stack_tokens.len; ++i) {
             State* state = stack_tokens.states[i];
-            if (token == state->token) {
-                if (any_match == FALSE) {
-                    any_match = TRUE;
-                }
-                if (state->next != NULL) {
-                    if (peek == '\0') {
-                        State* last_state = state->next;
-                        while (last_state != NULL) {
-                            switch (last_state->type) {
-                            case EPSILON: {
-                                if (last_state->end == TRUE) {
-                                    return TRUE;
-                                }
-                                last_state = last_state->next;
-                                break;
+            if ((token == state->token) && (state->next != NULL)) {
+                if (peek == '\0') {
+                    /* NOTE: Looping paths should *always* be inscribed onto
+                     * `State.next_split`; assuming that is the case, it is
+                     * safe to search for `State.end` by following
+                     * `State.next`.
+                     */
+                    State* last_state = state->next;
+                    while (last_state != NULL) {
+                        if (last_state->type == EPSILON) {
+                            if (last_state->end == TRUE) {
+                                return TRUE;
                             }
-                            case TOKEN: {
-                                return FALSE;
-                            }
-                            }
+                            last_state = last_state->next;
+                        } else {
+                            break;
                         }
                     }
+                } else {
                     PUSH(stack_all, state->next);
                 }
             }
         }
-        if (any_match == FALSE) {
+        if (stack_all.len == 0) {
             return FALSE;
         }
         stack_tokens.len = 0;
