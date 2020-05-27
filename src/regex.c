@@ -3,12 +3,14 @@
 
 typedef unsigned char u8;
 
-#define STATE_CAP 18
+#define STATE_CAP 22
 #define STACK_CAP 12
 
 #define OP_CONCAT       '.'
 #define OP_EITHER       '|'
+#define OP_ZERO_OR_ONE  '?'
 #define OP_ZERO_OR_MANY '*'
+#define OP_ONE_OR_MANY  '+'
 
 #define PRINT_ERROR(function)                                   \
     fprintf(stderr,                                             \
@@ -122,6 +124,22 @@ static void set_either(Memory* memory, LinkStack* stack) {
     stack->links[stack->len++] = link;
 }
 
+static void set_zero_or_one(Memory* memory, LinkStack* stack) {
+    if (stack->len < 1) {
+        PRINT_ERROR("set_zero_or_one");
+        exit(EXIT_FAILURE);
+    }
+    Link a = stack->links[--stack->len];
+    Link link = {
+        .first = state_new(memory),
+        .last = state_new(memory),
+    };
+    link.first->next = link.last;
+    link.first->next_split = a.first;
+    a.last->next = link.last;
+    stack->links[stack->len++] = link;
+}
+
 static void set_zero_or_many(Memory* memory, LinkStack* stack) {
     if (stack->len < 1) {
         PRINT_ERROR("set_zero_or_many");
@@ -143,7 +161,24 @@ static void set_zero_or_many(Memory* memory, LinkStack* stack) {
     stack->links[stack->len++] = link;
 }
 
+static void set_one_or_many(Memory* memory, LinkStack* stack) {
+    if (stack->len < 1) {
+        PRINT_ERROR("set_one_or_many");
+        exit(EXIT_FAILURE);
+    }
+    Link a = stack->links[--stack->len];
+    Link link = {
+        .first = state_new(memory),
+        .last = state_new(memory),
+    };
+    link.first->next = a.first;
+    a.last->next = link.last;
+    a.last->next_split = a.first;
+    stack->links[stack->len++] = link;
+}
+
 static Link get_nfa(Memory* memory, const char* postfix_expr) {
+    /* NOTE: See `https://swtch.com/~rsc/regexp/regexp1.html`. */
     memory->state_len = 0;
     LinkStack stack = {
         .links = memory->link_stack,
@@ -160,8 +195,16 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
             set_either(memory, &stack);
             break;
         }
+        case OP_ZERO_OR_ONE: {
+            set_zero_or_one(memory, &stack);
+            break;
+        }
         case OP_ZERO_OR_MANY: {
             set_zero_or_many(memory, &stack);
+            break;
+        }
+        case OP_ONE_OR_MANY: {
+            set_one_or_many(memory, &stack);
             break;
         }
         default: {
@@ -409,6 +452,28 @@ int main(void) {
     TEST("ab|*c.", "cabc", FALSE);
     TEST("ab|*c.", "cba", FALSE);
     TEST("ab|*c.", "cc", FALSE);
+    TEST("ab|+c.", "c", FALSE);
+    TEST("ab|+c.", "ac", TRUE);
+    TEST("ab|+c.", "bc", TRUE);
+    TEST("ab|+c.", "abc", TRUE);
+    TEST("ab|+c.", "bac", TRUE);
+    TEST("ab|+c.", "aabbc", TRUE);
+    TEST("ab|+c.", "cc", FALSE);
+    TEST("ab|+c.", "cab", FALSE);
+    TEST("ab|+c.", "cabc", FALSE);
+    TEST("ab|+c.", "cba", FALSE);
+    TEST("ab|+c.", "cc", FALSE);
+    TEST("ab|?c.", "c", TRUE);
+    TEST("ab|?c.", "ac", TRUE);
+    TEST("ab|?c.", "bc", TRUE);
+    TEST("ab|?c.", "abc", FALSE);
+    TEST("ab|?c.", "bac", FALSE);
+    TEST("ab|?c.", "aabbc", FALSE);
+    TEST("ab|?c.", "cc", FALSE);
+    TEST("ab|?c.", "cab", FALSE);
+    TEST("ab|?c.", "cabc", FALSE);
+    TEST("ab|?c.", "cba", FALSE);
+    TEST("ab|?c.", "cc", FALSE);
     TEST("ab.c.", "abc", TRUE);
     TEST("ab.c.", "abcd", FALSE);
     TEST("a", "", FALSE);
@@ -418,12 +483,20 @@ int main(void) {
     TEST("a*", "b", FALSE);
     TEST("a*", "a", TRUE);
     TEST("a*", "aaaaaaa", TRUE);
+    TEST("a+", "", FALSE);
+    TEST("a+", "b", FALSE);
+    TEST("a+", "a", TRUE);
+    TEST("a+", "aaaaaaa", TRUE);
     TEST("aa*.", "", FALSE);
     TEST("aa*.", "a", TRUE);
     TEST("aa*.", "aaaaaaa", TRUE);
     TEST("aa*.", "baaaaaa", FALSE);
     TEST("aa*.", "aaaaaab", FALSE);
     TEST("aa*.", "aaabaab", FALSE);
+    TEST("aa?.", "", FALSE);
+    TEST("aa?.", "a", TRUE);
+    TEST("aa?.", "aa", TRUE);
+    TEST("aa?.", "aaa", FALSE);
     TEST("aa.a*.", "", FALSE);
     TEST("aa.a*.", "a", FALSE);
     TEST("aa.a*.", "aa", TRUE);
@@ -468,6 +541,10 @@ int main(void) {
     TEST("a*b|", "a", TRUE);
     TEST("a*b|", "aa", TRUE);
     TEST("a*b|", "b", TRUE);
+    TEST("a+b|", "", FALSE);
+    TEST("a+b|", "a", TRUE);
+    TEST("a+b|", "aa", TRUE);
+    TEST("a+b|", "b", TRUE);
     TEST("ab*|", "", TRUE);
     TEST("ab*|", "a", TRUE);
     TEST("ab*|", "b", TRUE);
@@ -476,22 +553,39 @@ int main(void) {
     TEST("ca*b|.", "ca", TRUE);
     TEST("ca*b|.", "caa", TRUE);
     TEST("ca*b|.", "cb", TRUE);
+    TEST("ca*b|.", "", FALSE);
+    TEST("ca*b|.", "a", FALSE);
+    TEST("ca*b|.", "aa", FALSE);
+    TEST("ca*b|.", "b", FALSE);
+    TEST("ca?b|.", "c", TRUE);
+    TEST("ca?b|.", "ca", TRUE);
+    TEST("ca?b|.", "caa", FALSE);
+    TEST("ca?b|.", "cb", TRUE);
+    TEST("ca?b|.", "", FALSE);
+    TEST("ca?b|.", "a", FALSE);
+    TEST("ca?b|.", "aa", FALSE);
+    TEST("ca?b|.", "b", FALSE);
     TEST("cab*|*.", "c", TRUE);
     TEST("cab*|*.", "ca", TRUE);
     TEST("cab*|*.", "cb", TRUE);
     TEST("cab*|*.", "cbb", TRUE);
     TEST("cab*|*.", "cabbabbabb", TRUE);
     TEST("cab*|*.", "caabbabbabb", TRUE);
-    TEST("ca*b|.", "", FALSE);
-    TEST("ca*b|.", "a", FALSE);
-    TEST("ca*b|.", "aa", FALSE);
-    TEST("ca*b|.", "b", FALSE);
     TEST("cab*|*.", "", FALSE);
     TEST("cab*|*.", "a", FALSE);
     TEST("cab*|*.", "b", FALSE);
     TEST("cab*|*.", "bb", FALSE);
     TEST("cab*|*.", "abbabbabb", FALSE);
     TEST("cab*|*.", "aabbabbabb", FALSE);
+    TEST("abcdef|||||", "a", TRUE);
+    TEST("abcdef|||||", "b", TRUE);
+    TEST("abcdef|||||", "c", TRUE);
+    TEST("abcdef|||||", "d", TRUE);
+    TEST("abcdef|||||", "e", TRUE);
+    TEST("abcdef|||||", "f", TRUE);
+    TEST("abcdef|||||", "g", FALSE);
+    TEST("abcdef|||||", "h", FALSE);
+    TEST("abcdef|||||", "", FALSE);
     if (0 < TESTS_FAILED) {
         printf("\n");
     }
