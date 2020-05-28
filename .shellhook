@@ -84,6 +84,7 @@ export FLAGS_SANITIZE=(
 runc () {
     handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
     clang-format -i "$1" || return
+    cppcheck --enable=all --suppress=missingIncludeSystem "$1" || return
     pin=$PWD
     cp "$1" "$WD/build/$handle.c"
     (

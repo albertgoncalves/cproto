@@ -102,7 +102,7 @@ static u32 pcg_32(pcgRng* rng) {
 }
 
 static u32 pcg_32_bound(pcgRng* rng, u32 bound) {
-    u32 threshold = -bound % bound;
+    u32 threshold = (-bound) % bound;
     for (;;) {
         u32 value = pcg_32(rng);
         if (threshold <= value) {
@@ -117,13 +117,12 @@ static void set_line(color* mask, i32 x0, i32 y0, i32 x1, i32 y1) {
     i32 y_delta = abs(y1 - y0);
     i32 y_sign = y0 < y1 ? 1 : -1;
     i32 error_a = (y_delta < x_delta ? x_delta : -y_delta) / 2;
-    i32 error_b;
     for (;;) {
         mask[(y0 * WIDTH) + x0] = lightGray;
         if ((x0 == x1) && (y0 == y1)) {
             return;
         }
-        error_b = error_a;
+        i32 error_b = error_a;
         if (-x_delta < error_b) {
             error_a -= y_delta;
             x0 += x_sign;

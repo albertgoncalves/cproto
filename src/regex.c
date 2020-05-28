@@ -389,13 +389,13 @@ static u8 TESTS_FAILED = 0;
     }
 
 int main(void) {
-    printf("sizeof(State)     : %lu\n"
-           "sizeof(u8)        : %lu\n"
-           "sizeof(StateType) : %lu\n"
-           "sizeof(char)      : %lu\n"
-           "sizeof(Bool)      : %lu\n"
-           "sizeof(Link)      : %lu\n"
-           "sizeof(Memory)    : %lu\n"
+    printf("sizeof(State)     : %zu\n"
+           "sizeof(u8)        : %zu\n"
+           "sizeof(StateType) : %zu\n"
+           "sizeof(char)      : %zu\n"
+           "sizeof(Bool)      : %zu\n"
+           "sizeof(Link)      : %zu\n"
+           "sizeof(Memory)    : %zu\n"
            "\n",
            sizeof(State),
            sizeof(u8),
