@@ -73,10 +73,11 @@ static Node pop(Heap* heap) {
     }
 
 int main(void) {
-    Heap* heap = calloc(1, sizeof(Heap));
+    Heap* heap = malloc(sizeof(Heap));
     if (heap == NULL) {
         return EXIT_FAILURE;
     }
+    heap->length = 0;
     INSERT(heap, 3);
     INSERT(heap, 8);
     INSERT(heap, 21);
