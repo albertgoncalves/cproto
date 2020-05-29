@@ -10,91 +10,91 @@ typedef struct {
 } Node;
 
 typedef struct {
-    Node heap[HEAP_CAP];
+    Node nodes[HEAP_CAP];
     u8   length;
-} Memory;
+} Heap;
 
 static const Node EMPTY = {0};
 
-static void swap(Memory* memory, u8 i, u8 j) {
-    Node swap = memory->heap[i];
-    memory->heap[i] = memory->heap[j];
-    memory->heap[j] = swap;
+static void swap(Node* nodes, u8 i, u8 j) {
+    Node node = nodes[i];
+    nodes[i] = nodes[j];
+    nodes[j] = node;
 }
 
-static void insert(Memory* memory, Node node) {
-    if ((memory->length == HEAP_CAP) || (node.key == 0)) {
+static void insert(Heap* heap, Node node) {
+    if ((heap->length == HEAP_CAP) || (node.key == 0)) {
         exit(EXIT_FAILURE);
     }
-    memory->heap[memory->length] = node;
-    if (0 < memory->length) {
-        u8 i = memory->length;
+    heap->nodes[heap->length] = node;
+    if (0 < heap->length) {
+        u8 i = heap->length;
         u8 j = i / 2;
         while (0 < i) {
-            if (memory->heap[j].key < memory->heap[i].key) {
-                swap(memory, i, j);
+            if (heap->nodes[j].key < heap->nodes[i].key) {
+                swap(heap->nodes, i, j);
             }
             i = j;
             j = i / 2;
         }
     }
-    ++memory->length;
+    ++heap->length;
     return;
 }
 
-static Node pop(Memory* memory) {
-    if (memory->length == 0) {
+static Node pop(Heap* heap) {
+    if (heap->length == 0) {
         exit(EXIT_FAILURE);
     }
-    Node node = memory->heap[0];
-    u8   length = --memory->length;
-    memory->heap[0] = memory->heap[length];
-    memory->heap[length] = EMPTY;
+    Node node = heap->nodes[0];
+    u8   length = --heap->length;
+    heap->nodes[0] = heap->nodes[length];
+    heap->nodes[length] = EMPTY;
     u8 i = 0;
     u8 j = 1;
     while (j < length) {
-        if (memory->heap[j].key < memory->heap[j + 1].key) {
+        if (heap->nodes[j].key < heap->nodes[j + 1].key) {
             ++j;
         }
-        if (memory->heap[j].key <= memory->heap[i].key) {
+        if (heap->nodes[j].key <= heap->nodes[i].key) {
             break;
         }
-        swap(memory, i, j);
+        swap(heap->nodes, i, j);
         i = j;
         j = (u8)(i * 2);
     }
     return node;
 }
 
-#define INSERT(memory, key)   \
-    {                         \
-        Node node = {key};    \
-        insert(memory, node); \
+#define INSERT(heap, key)   \
+    {                       \
+        Node node = {key};  \
+        insert(heap, node); \
     }
 
 int main(void) {
-    Memory* memory = calloc(1, sizeof(Memory));
-    if (memory == NULL) {
+    Heap* heap = calloc(1, sizeof(Heap));
+    if (heap == NULL) {
         return EXIT_FAILURE;
     }
-    INSERT(memory, 3);
-    INSERT(memory, 8);
-    INSERT(memory, 21);
-    INSERT(memory, 1);
-    INSERT(memory, 1);
-    INSERT(memory, 4);
-    INSERT(memory, 3);
-    INSERT(memory, 12);
-    INSERT(memory, 20);
-    INSERT(memory, 4);
-    INSERT(memory, 20);
-    INSERT(memory, 19);
-    INSERT(memory, 3);
-    INSERT(memory, 11);
-    u8 length = memory->length;
+    INSERT(heap, 3);
+    INSERT(heap, 8);
+    INSERT(heap, 21);
+    INSERT(heap, 1);
+    INSERT(heap, 1);
+    INSERT(heap, 4);
+    INSERT(heap, 3);
+    INSERT(heap, 12);
+    INSERT(heap, 20);
+    INSERT(heap, 4);
+    INSERT(heap, 20);
+    INSERT(heap, 19);
+    INSERT(heap, 3);
+    INSERT(heap, 11);
+    u8 length = heap->length;
     for (u8 i = 0; i < length; ++i) {
-        printf("pop() : %hhu\n", pop(memory).key);
+        printf("pop() : %hhu\n", pop(heap).key);
     }
-    free(memory);
+    free(heap);
     return EXIT_SUCCESS;
 }
