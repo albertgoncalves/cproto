@@ -13,41 +13,44 @@ typedef enum {
     HALT = I32_MIN,
     PUSH,
     POP,
-    STORE,
-    LOAD,
+    COPY,
     JUMP0,
-    JUMP1,
-    EQ,
     LT,
     ADD,
 } InstrI32;
 
-#define STACK_CAP  4
-#define GLOBAL_CAP 4
+#define STACK_CAP 4
 
 typedef struct {
     i32 stack[STACK_CAP];
-    i32 global[GLOBAL_CAP];
-    i32 result;
     u8  stack_len;
-    u8  global_len;
 } Memory;
 
-#define PROG_LEN 25
+#define PROG_LEN 18
 
 static const InstrI32 PROGRAM[PROG_LEN] = {
-    PUSH, 5,  STORE, 0,     LOAD, 0,    PUSH, 6,    ADD, STORE, 0,   LOAD, 0,
-    PUSH, 20, LT,    JUMP0, 4,    LOAD, 0,    PUSH, -1,  ADD,   POP, HALT,
+    PUSH,
+    5,
+    PUSH,
+    6,
+    ADD,
+    COPY,
+    PUSH,
+    20,
+    LT,
+    JUMP0,
+    2,
+    PUSH,
+    -1,
+    ADD,
+    PUSH,
+    21,
+    POP,
+    HALT,
 };
 
 #define INC1 ++i
 #define INC2 i = (u8)(i + 2)
-
-#define POP_1                    \
-    if (memory->stack_len < 1) { \
-        exit(EXIT_FAILURE);      \
-    }                            \
-    i32 s1 = stack[--memory->stack_len]
 
 #define POP_2                            \
     if (memory->stack_len < 2) {         \
@@ -60,7 +63,10 @@ static const InstrI32 PROGRAM[PROG_LEN] = {
     if ((PROG_LEN - 1) <= i) {                \
         exit(EXIT_FAILURE);                   \
     }                                         \
-    POP_1;                                    \
+    if (memory->stack_len < 1) {              \
+        exit(EXIT_FAILURE);                   \
+    }                                         \
+    i32      s1 = stack[--memory->stack_len]; \
     InstrI32 p1 = PROGRAM[i + 1];             \
     printf("%3hhu - JUMP%d %3d\n", i, x, p1); \
     if (s1 == x) {                            \
@@ -69,72 +75,49 @@ static const InstrI32 PROGRAM[PROG_LEN] = {
         INC2;                                 \
     }
 
-static i32* run_program(Memory* memory) {
+static void run_program(Memory* memory) {
     i32* stack = memory->stack;
-    i32* global = memory->global;
-    i32* result = NULL;
     for (u8 i = 0; i < PROG_LEN;) {
         InstrI32 instruction = PROGRAM[i];
         switch (instruction) {
         case HALT: {
+            if (memory->stack_len != 1) {
+                exit(EXIT_FAILURE);
+            }
             printf("%3hhu - HALT\n", i);
-            return result;
+            return;
         }
         case PUSH: {
             if ((STACK_CAP <= memory->stack_len) || ((PROG_LEN - 1) <= i)) {
                 exit(EXIT_FAILURE);
             }
-            i32 x = PROGRAM[i + 1];
-            printf("%3hhu - PUSH  %3d\n", i, x);
-            stack[memory->stack_len++] = x;
+            i32 p1 = PROGRAM[i + 1];
+            printf("%3hhu - PUSH  %3d\n", i, p1);
+            stack[memory->stack_len++] = p1;
             INC2;
             break;
         }
         case POP: {
             printf("%3hhu - POP\n", i);
-            POP_1;
-            memory->result = s1;
-            result = &memory->result;
+            if (memory->stack_len < 1) {
+                exit(EXIT_FAILURE);
+            }
+            --memory->stack_len;
             INC1;
             break;
         }
-        case STORE: {
-            if ((GLOBAL_CAP <= memory->global_len) || ((PROG_LEN - 1) <= i)) {
+        case COPY: {
+            printf("%3hhu - COPY\n", i);
+            if ((memory->stack_len < 1) || (STACK_CAP <= memory->stack_len)) {
                 exit(EXIT_FAILURE);
             }
-            POP_1;
-            InstrI32 p1 = PROGRAM[i + 1];
-            printf("%3hhu - STORE %3d\n", i, p1);
-            global[p1] = s1;
-            INC2;
-            break;
-        }
-        case LOAD: {
-            if ((STACK_CAP <= memory->stack_len) || ((PROG_LEN - 1) <= i)) {
-                exit(EXIT_FAILURE);
-            }
-            InstrI32 x = PROGRAM[i + 1];
-            printf("%3hhu - LOAD  %3d\n", i, x);
-            if (GLOBAL_CAP <= x) {
-                exit(EXIT_FAILURE);
-            }
-            stack[memory->stack_len++] = global[x];
-            INC2;
+            i32 s1 = stack[memory->stack_len - 1];
+            stack[memory->stack_len++] = s1;
+            INC1;
             break;
         }
         case JUMP0: {
             JUMP_IF(0);
-            break;
-        }
-        case JUMP1: {
-            JUMP_IF(1);
-            break;
-        }
-        case EQ: {
-            printf("%3hhu - EQ\n", i);
-            POP_2;
-            stack[memory->stack_len++] = s1 == s2 ? 1 : 0;
-            INC1;
             break;
         }
         case LT: {
@@ -157,12 +140,11 @@ static i32* run_program(Memory* memory) {
         }
         }
     }
-    return result;
+    return;
 }
 
 #undef INC1
 #undef INC2
-#undef POP_1
 #undef POP_2
 #undef JUMP_IF
 
@@ -183,10 +165,8 @@ int main(void) {
     if (memory == NULL) {
         return EXIT_FAILURE;
     }
-    i32* result = run_program(memory);
-    if (result != NULL) {
-        printf("\nresult : %d\n", *result);
-    }
+    run_program(memory);
+    printf("\nmemory->stack[0] : %d\n", memory->stack[0]);
     free(memory);
     return EXIT_SUCCESS;
 }
