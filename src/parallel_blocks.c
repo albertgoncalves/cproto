@@ -1,12 +1,13 @@
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef unsigned char   u8;
-typedef unsigned short  u16;
-typedef pthread_mutex_t Mutex;
-typedef pthread_t       Thread;
+typedef unsigned char  u8;
+typedef unsigned short u16;
+typedef atomic_ushort  u16Atomic;
+typedef pthread_t      Thread;
 
 #define BUFFER_WIDTH  20
 #define BUFFER_HEIGHT 20
@@ -21,15 +22,7 @@ typedef pthread_t       Thread;
 
 #define N_THREADS 3
 
-static u16   INDEX = 0;
-static Mutex LOCK;
-
-static u16 sync_index(void) {
-    pthread_mutex_lock(&LOCK);
-    u16 index = INDEX++;
-    pthread_mutex_unlock(&LOCK);
-    return index;
-}
+static u16Atomic INDEX = 0;
 
 typedef struct {
     u16 x;
@@ -49,7 +42,7 @@ typedef struct {
 static void* set_buffer(void* args) {
     Payload* payload = (Payload*)args;
     for (;;) {
-        u16 index = sync_index();
+        u16 index = (u16)atomic_fetch_add(&INDEX, 1);
         if (BLOCKS_CAP <= index) {
             return NULL;
         }

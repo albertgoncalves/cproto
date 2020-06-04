@@ -9,13 +9,14 @@ for x in bin build out; do
 done
 
 # NOTE: See `https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html`.
+    # "-std=gnu99"
 export FLAGS=(
     "-fdelete-null-pointer-checks"
     "-fshort-enums"
     "-march=native"
     "-mavx"
     "-O1"
-    "-std=gnu99"
+    "-std=gnu11"
     "-Wall"
     "-Wcast-align"
     "-Wcast-align=strict"
