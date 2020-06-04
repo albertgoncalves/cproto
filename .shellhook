@@ -93,6 +93,7 @@ runc () {
             -g \
             -o "$WD/bin/${handle}_valgrind" \
             "${FLAGS[@]}" \
+            -pthread \
             -lm \
             "$handle.c" \
             || return
@@ -101,6 +102,7 @@ runc () {
             -o "$WD/bin/${handle}_sanitize" \
             "${FLAGS[@]}" \
             "${FLAGS_SANITIZE[@]}" \
+            -pthread \
             -lm \
             "$handle.c" \
             || return
