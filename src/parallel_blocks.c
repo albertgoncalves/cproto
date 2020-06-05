@@ -9,21 +9,24 @@ typedef unsigned short u16;
 typedef atomic_ushort  u16Atomic;
 typedef pthread_t      Thread;
 
-#define BUFFER_CAP 512
-#define BLOCKS_CAP 512
+#define BUFFER_CAP 512u
+#define BLOCKS_CAP 512u
 
-#define BUFFER_WIDTH  17
-#define BUFFER_HEIGHT 17
+/* NOTE: It would be nice if all of the `static const` variables could be
+ * determined at _compile-time_!
+ */
+#define BUFFER_WIDTH  17u
+#define BUFFER_HEIGHT 17u
 static const u16 BUFFER_LEN = BUFFER_WIDTH * BUFFER_HEIGHT;
 
-#define N 4
+#define N 4u
 static const u16 BLOCK_WIDTH = BUFFER_WIDTH / N;
 static const u16 BLOCK_HEIGHT = BUFFER_HEIGHT / N;
-static const u16 X_BLOCKS = (BUFFER_WIDTH + BLOCK_WIDTH - 1) / BLOCK_WIDTH;
-static const u16 Y_BLOCKS = (BUFFER_HEIGHT + BLOCK_HEIGHT - 1) / BLOCK_HEIGHT;
+static const u16 X_BLOCKS = (BUFFER_WIDTH + BLOCK_WIDTH - 1u) / BLOCK_WIDTH;
+static const u16 Y_BLOCKS = (BUFFER_HEIGHT + BLOCK_HEIGHT - 1u) / BLOCK_HEIGHT;
 static const u16 BLOCKS_LEN = X_BLOCKS * Y_BLOCKS;
 
-#define THREAD_CAP 3
+#define THREAD_CAP 3u
 
 static u16Atomic INDEX = 0;
 
@@ -35,36 +38,41 @@ typedef struct {
 typedef struct {
     XY start;
     XY end;
-} Work;
+} Block;
 
 typedef struct {
-    u16*  buffer;
-    Work* works;
-    u8    id;
+    u16*   buffer;
+    Block* blocks;
+    u8     id;
 } Payload;
 
 typedef struct {
-    u16     buffer[BUFFER_CAP];
-    Work    works[BLOCKS_CAP];
     Payload payloads[THREAD_CAP];
     Thread  threads[THREAD_CAP];
+    Block   blocks[BLOCKS_CAP];
+    u16     buffer[BUFFER_CAP];
 } Memory;
 
-static void* set_buffer(void* args) {
-    Payload* payload = (Payload*)args;
+static void set_buffer(u16* buffer, Block block, u16 value) {
+    for (u16 y = block.start.y; y < block.end.y; ++y) {
+        u16 offset = (u16)(y * BUFFER_WIDTH);
+        for (u16 x = block.start.x; x < block.end.x; ++x) {
+            buffer[x + offset] = value;
+        }
+    }
+    usleep(100000);
+}
+
+static void* do_work(void* args) {
+    Payload* payload = args;
+    u16*     buffer = payload->buffer;
     for (;;) {
         u16 index = (u16)atomic_fetch_add(&INDEX, 1);
         if (BLOCKS_LEN <= index) {
             return NULL;
         }
-        Work work = payload->works[index];
-        for (u16 y = work.start.y; y < work.end.y; ++y) {
-            u16 offset = (u16)(y * BUFFER_WIDTH);
-            for (u16 x = work.start.x; x < work.end.x; ++x) {
-                payload->buffer[x + offset] = index;
-            }
-        }
-        usleep(100000);
+        Block block = payload->blocks[index];
+        set_buffer(buffer, block, index);
     }
 }
 
@@ -74,7 +82,7 @@ int main(void) {
            "sizeof(u16Atomic) : %zu\n"
            "sizeof(Thread)    : %zu\n"
            "sizeof(XY)        : %zu\n"
-           "sizeof(Work)      : %zu\n"
+           "sizeof(Block)     : %zu\n"
            "sizeof(Payload)   : %zu\n"
            "sizeof(Memory)    : %zu\n"
            "\n",
@@ -82,7 +90,7 @@ int main(void) {
            sizeof(u16Atomic),
            sizeof(Thread),
            sizeof(XY),
-           sizeof(Work),
+           sizeof(Block),
            sizeof(Payload),
            sizeof(Memory));
     if ((BUFFER_CAP < BUFFER_LEN) || (BLOCKS_CAP < BLOCKS_LEN)) {
@@ -94,7 +102,7 @@ int main(void) {
     }
     Payload payload;
     payload.buffer = memory->buffer;
-    payload.works = memory->works;
+    payload.blocks = memory->blocks;
     {
         u16 index = 0;
         for (u16 y = 0; y < Y_BLOCKS; ++y) {
@@ -109,22 +117,24 @@ int main(void) {
                 };
                 end.x = end.x < BUFFER_WIDTH ? end.x : BUFFER_WIDTH;
                 end.y = end.y < BUFFER_HEIGHT ? end.y : BUFFER_HEIGHT;
-                Work work = {
+                Block block = {
                     .start = start,
                     .end = end,
                 };
-                payload.works[index++] = work;
+                payload.blocks[index++] = block;
             }
         }
     }
-    Thread* threads = memory->threads;
     for (u8 i = 0; i < THREAD_CAP; ++i) {
         memory->payloads[i] = payload;
         memory->payloads[i].id = i;
-        pthread_create(&threads[i], NULL, set_buffer, &memory->payloads[i]);
+        pthread_create(&memory->threads[i],
+                       NULL,
+                       do_work,
+                       &memory->payloads[i]);
     }
     for (u8 i = 0; i < THREAD_CAP; ++i) {
-        pthread_join(threads[i], NULL);
+        pthread_join(memory->threads[i], NULL);
     }
     for (u16 y = 0; y < BUFFER_HEIGHT; ++y) {
         u16 offset = (u16)(y * BUFFER_WIDTH);
