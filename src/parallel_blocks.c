@@ -71,8 +71,7 @@ static void* do_work(void* args) {
         if (BLOCKS_LEN <= index) {
             return NULL;
         }
-        Block block = payload->blocks[index];
-        set_buffer(buffer, block, index);
+        set_buffer(buffer, payload->blocks[index], index);
     }
 }
 
