@@ -67,7 +67,7 @@ static void* do_work(void* args) {
     Payload* payload = args;
     u16*     buffer = payload->buffer;
     for (;;) {
-        u16 index = (u16)atomic_fetch_add(&INDEX, 1);
+        u16 index = atomic_fetch_add(&INDEX, 1);
         if (BLOCKS_LEN <= index) {
             return NULL;
         }
