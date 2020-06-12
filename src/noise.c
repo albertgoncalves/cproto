@@ -92,9 +92,6 @@ static u32 pcg_32(pcgRng* rng) {
 
 static u32 pcg_32_bound(pcgRng* rng, u32 bound) {
     u32 threshold = (-bound) % bound;
-    if (threshold != 1) {
-        printf("%u\n", threshold);
-    }
     for (;;) {
         u32 value = pcg_32(rng);
         if (threshold <= value) {
