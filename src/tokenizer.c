@@ -3,9 +3,9 @@
 
 #define MAX_FILE_BUFFER_SIZE 128
 
-#define TOKENS_SIZE         8
-#define STRING_BUFFER_SIZE  16
-#define STRING_BUFFER_LIMIT 15
+#define TOKENS_SIZE         48
+#define STRING_BUFFER_SIZE  128
+#define STRING_BUFFER_LIMIT 127
 
 #define IS_SPACE(c) (c < '!')
 #define IS_ALPHA(c) (('A' <= c) && (c <= 'z'))
