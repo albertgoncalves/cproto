@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef char          i8;
 typedef unsigned char u8;
 typedef size_t        usize;
 typedef long int      i64;
@@ -13,7 +14,7 @@ typedef struct {
 } Line;
 
 typedef struct {
-    char buffer[BUFFER_CAP];
+    i8   buffer[BUFFER_CAP];
     Line lines[BUFFER_CAP];
 } Memory;
 
