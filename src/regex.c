@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef char          i8;
 typedef unsigned char u8;
 
 #define STATE_CAP 22
@@ -31,7 +32,7 @@ struct State {
     State*    next;
     State*    next_split;
     StateType type;
-    char      token;
+    i8        token;
     Bool      end;
 };
 
@@ -74,7 +75,7 @@ static State* state_new(Memory* memory) {
     return state;
 }
 
-static void set_token(Memory* memory, LinkStack* stack, char token) {
+static void set_token(Memory* memory, LinkStack* stack, i8 token) {
     if (STACK_CAP <= stack->len) {
         PRINT_ERROR;
         exit(EXIT_FAILURE);
@@ -175,15 +176,14 @@ static void set_one_or_many(Memory* memory, LinkStack* stack) {
     stack->links[stack->len++] = link;
 }
 
-static Link get_nfa(Memory* memory, const char* postfix_expr) {
+static Link get_nfa(Memory* memory, const i8* postfix_expr) {
     /* NOTE: See `https://swtch.com/~rsc/regexp/regexp1.html`. */
     memory->state_len = 0;
     LinkStack stack = {
         .links = memory->link_stack,
         .len = 0,
     };
-    for (char token = *postfix_expr++; token != '\0'; token = *postfix_expr++)
-    {
+    for (i8 token = *postfix_expr++; token != '\0'; token = *postfix_expr++) {
         switch (token) {
         case OP_CONCAT: {
             set_concat(&stack);
@@ -240,7 +240,7 @@ static Bool get_empty_match(Memory* memory, State* state) {
     while (stack.len != 0) {
         State* last_state = stack.states[--stack.len];
         if (last_state->type == EPSILON) {
-            if (last_state->end == TRUE) {
+            if (last_state->end) {
                 return TRUE;
             }
             if (last_state->next != NULL) {
@@ -265,8 +265,8 @@ static Bool get_empty_match(Memory* memory, State* state) {
         stack.states[stack.len++] = state; \
     }
 
-static Bool get_match(Memory* memory, Link link, const char* string) {
-    char token = *string;
+static Bool get_match(Memory* memory, Link link, const i8* string) {
+    i8 token = *string;
     if (token == '\0') {
         return get_empty_match(memory, link.first);
     }
@@ -298,7 +298,7 @@ static Bool get_match(Memory* memory, Link link, const char* string) {
                         break;
                     }
                 }
-                if (visited == TRUE) {
+                if (visited) {
                     continue;
                 }
                 switch (state->type) {
@@ -332,7 +332,7 @@ static Bool get_match(Memory* memory, Link link, const char* string) {
         }
         stack_all.len = 0;
         stack_visited.len = 0;
-        char peek = *++string;
+        i8 peek = *++string;
         for (u8 i = 0; i < stack_tokens.len; ++i) {
             State* state = stack_tokens.states[i];
             if ((token == state->token) && (state->next != NULL)) {
@@ -345,7 +345,7 @@ static Bool get_match(Memory* memory, Link link, const char* string) {
                     State* last_state = state->next;
                     while (last_state != NULL) {
                         if (last_state->type == EPSILON) {
-                            if (last_state->end == TRUE) {
+                            if (last_state->end) {
                                 return TRUE;
                             }
                             last_state = last_state->next;
@@ -390,7 +390,7 @@ int main(void) {
     printf("sizeof(State)     : %zu\n"
            "sizeof(u8)        : %zu\n"
            "sizeof(StateType) : %zu\n"
-           "sizeof(char)      : %zu\n"
+           "sizeof(i8)        : %zu\n"
            "sizeof(Bool)      : %zu\n"
            "sizeof(Link)      : %zu\n"
            "sizeof(Memory)    : %zu\n"
@@ -398,7 +398,7 @@ int main(void) {
            sizeof(State),
            sizeof(u8),
            sizeof(StateType),
-           sizeof(char),
+           sizeof(i8),
            sizeof(Bool),
            sizeof(Link),
            sizeof(Memory));
