@@ -12,10 +12,8 @@ typedef unsigned char u8;
 #define OP_ZERO_OR_MANY '*'
 #define OP_ONE_OR_MANY  '+'
 
-#define PRINT_ERROR(function)                                   \
-    fprintf(stderr,                                             \
-            "\033[1;31mError\033[0m @ \033[1m%s(...)\033[0m\n", \
-            function);
+#define PRINT_ERROR \
+    fprintf(stderr, "\033[1;31mError\033[0m @ \033[1m%s\033[0m\n", __func__)
 
 typedef enum {
     FALSE = 0,
@@ -64,7 +62,7 @@ typedef struct {
 
 static State* state_new(Memory* memory) {
     if (STATE_CAP <= memory->state_len) {
-        PRINT_ERROR("state_new");
+        PRINT_ERROR;
         exit(EXIT_FAILURE);
     }
     State* state = &memory->states[memory->state_len++];
@@ -78,7 +76,7 @@ static State* state_new(Memory* memory) {
 
 static void set_token(Memory* memory, LinkStack* stack, char token) {
     if (STACK_CAP <= stack->len) {
-        PRINT_ERROR("set_token");
+        PRINT_ERROR;
         exit(EXIT_FAILURE);
     }
     Link link = {
@@ -93,7 +91,7 @@ static void set_token(Memory* memory, LinkStack* stack, char token) {
 
 static void set_concat(LinkStack* stack) {
     if (stack->len < 2) {
-        PRINT_ERROR("set_concat");
+        PRINT_ERROR;
         exit(EXIT_FAILURE);
     }
     Link b = stack->links[--stack->len];
@@ -108,7 +106,7 @@ static void set_concat(LinkStack* stack) {
 
 static void set_either(Memory* memory, LinkStack* stack) {
     if (stack->len < 2) {
-        PRINT_ERROR("set_either");
+        PRINT_ERROR;
         exit(EXIT_FAILURE);
     }
     Link b = stack->links[--stack->len];
@@ -126,7 +124,7 @@ static void set_either(Memory* memory, LinkStack* stack) {
 
 static void set_zero_or_one(Memory* memory, LinkStack* stack) {
     if (stack->len < 1) {
-        PRINT_ERROR("set_zero_or_one");
+        PRINT_ERROR;
         exit(EXIT_FAILURE);
     }
     Link a = stack->links[--stack->len];
@@ -142,7 +140,7 @@ static void set_zero_or_one(Memory* memory, LinkStack* stack) {
 
 static void set_zero_or_many(Memory* memory, LinkStack* stack) {
     if (stack->len < 1) {
-        PRINT_ERROR("set_zero_or_many");
+        PRINT_ERROR;
         exit(EXIT_FAILURE);
     }
     Link a = stack->links[--stack->len];
@@ -163,7 +161,7 @@ static void set_zero_or_many(Memory* memory, LinkStack* stack) {
 
 static void set_one_or_many(Memory* memory, LinkStack* stack) {
     if (stack->len < 1) {
-        PRINT_ERROR("set_one_or_many");
+        PRINT_ERROR;
         exit(EXIT_FAILURE);
     }
     Link a = stack->links[--stack->len];
@@ -213,7 +211,7 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
         }
     }
     if (stack.len != 1) {
-        PRINT_ERROR("get_nfa");
+        PRINT_ERROR;
         exit(EXIT_FAILURE);
     }
     Link link = stack.links[0];
@@ -221,13 +219,13 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
     return link;
 }
 
-#define PUSH(stack, state)                  \
-    {                                       \
-        if (STACK_CAP <= stack.len) {       \
-            PRINT_ERROR("get_empty_match"); \
-            exit(EXIT_FAILURE);             \
-        }                                   \
-        stack.states[stack.len++] = state;  \
+#define PUSH(stack, state)                 \
+    {                                      \
+        if (STACK_CAP <= stack.len) {      \
+            PRINT_ERROR;                   \
+            exit(EXIT_FAILURE);            \
+        }                                  \
+        stack.states[stack.len++] = state; \
     }
 
 static Bool get_empty_match(Memory* memory, State* state) {
@@ -261,7 +259,7 @@ static Bool get_empty_match(Memory* memory, State* state) {
 #define PUSH(stack, state)                 \
     {                                      \
         if (STACK_CAP <= stack.len) {      \
-            PRINT_ERROR("get_match");      \
+            PRINT_ERROR;                   \
             exit(EXIT_FAILURE);            \
         }                                  \
         stack.states[stack.len++] = state; \
@@ -406,7 +404,7 @@ int main(void) {
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
     if (memory == NULL) {
-        PRINT_ERROR("main");
+        PRINT_ERROR;
         return EXIT_FAILURE;
     }
     TEST("ab.c.d.", "abcd", TRUE);
