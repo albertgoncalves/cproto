@@ -4,6 +4,7 @@
 typedef unsigned char  u8;
 typedef unsigned short u16;
 
+#define U8_MAX      0xFF
 #define U8_HALF_MAX 0x7F
 
 typedef struct {
@@ -32,10 +33,13 @@ static STRUCT* CREATE(void) {
 
 static STRUCT* PUSH(STRUCT* array, TYPE item) {
     if (array->len == array->cap) {
-        if (U8_HALF_MAX < array->cap) {
+        if (U8_MAX == array->cap) {
             exit(EXIT_FAILURE);
+        } else if (U8_HALF_MAX < array->cap) {
+            array->cap = U8_MAX;
+        } else {
+            array->cap = (u8)(array->cap << 1);
         }
-        array->cap = (u8)(array->cap << 1);
         array = realloc(array, sizeof(STRUCT) + (sizeof(TYPE) * array->cap));
         if (array == NULL) {
             exit(EXIT_FAILURE);
@@ -45,11 +49,11 @@ static STRUCT* PUSH(STRUCT* array, TYPE item) {
     return array;
 }
 
-static TYPE* POP(STRUCT* array) {
+static TYPE POP(STRUCT* array) {
     if (array->len == 0) {
-        return NULL;
+        exit(EXIT_FAILURE);
     }
-    return &array->buffer[--array->len];
+    return array->buffer[--array->len];
 }
 
 static void PRINT(STRUCT* array) {
@@ -90,15 +94,10 @@ int main(void) {
         array = push(array, (u8)(i + 1));
         print(array);
     }
-    for (;;) {
-        u16* item = pop(array);
-        if (item != NULL) {
-            printf("\npop(array) : %hu", *item);
-        } else {
-            printf("\n");
-            break;
-        }
+    for (; array->len != 0;) {
+        printf("\npop(array) : %hu", pop(array));
     }
+    printf("\n");
     print(array);
     free(array);
     return EXIT_SUCCESS;
