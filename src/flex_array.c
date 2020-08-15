@@ -69,7 +69,7 @@ static void PRINT(STRUCT* array) {
 }
 
 #undef STRUCT
-#undef T
+#undef TYPE
 #undef FORMAT
 #undef CREATE
 #undef PUSH
