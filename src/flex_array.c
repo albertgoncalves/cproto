@@ -94,7 +94,7 @@ int main(void) {
         array = push(array, (u8)(i + 1));
         print(array);
     }
-    for (; array->len != 0;) {
+    while (array->len != 0) {
         printf("\npop(array) : %hu", pop(array));
     }
     printf("\n");
