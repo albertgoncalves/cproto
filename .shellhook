@@ -10,7 +10,6 @@ done
 
 # NOTE: See `https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html`.
 export FLAGS=(
-    "-fdelete-null-pointer-checks"
     "-fshort-enums"
     "-march=native"
     "-mavx"
@@ -38,6 +37,7 @@ export FLAGS=(
     "-Wmissing-prototypes"
     "-Wnested-externs"
     "-Wno-unused-function"
+    "-Wno-unused-parameter"
     "-Wnull-dereference"
     "-Wpacked"
     "-Wpedantic"
@@ -84,7 +84,12 @@ export FLAGS_SANITIZE=(
 runc () {
     handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
     clang-format -i "$1" || return
-    cppcheck --enable=all --suppress=missingIncludeSystem "$1" || return
+    cppcheck \
+        --enable=all \
+        --suppress=knownArgument \
+        --suppress=missingIncludeSystem \
+        "$1" \
+        || return
     pin=$PWD
     cp "$1" "$WD/build/$handle.c"
     (
