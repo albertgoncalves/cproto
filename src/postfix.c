@@ -1,8 +1,9 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef unsigned char u8;
+typedef uint8_t u8;
 
 #define STACK_CAP 64
 

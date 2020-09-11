@@ -1,12 +1,11 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef unsigned char u8;
+typedef uint8_t u8;
+typedef int32_t i32;
 
-#define U8_MAX (u8)0xFF
-
-typedef int i32;
-
+#define U8_MAX  (u8)0xFF
 #define I32_MIN (i32)0x80000000
 
 typedef enum {

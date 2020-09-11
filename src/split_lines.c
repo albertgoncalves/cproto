@@ -1,10 +1,10 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef char          i8;
-typedef unsigned char u8;
-typedef size_t        usize;
-typedef long int      i64;
+typedef uint8_t u8;
+typedef size_t  usize;
+typedef int64_t i64;
 
 #define BUFFER_CAP 128
 
@@ -14,7 +14,7 @@ typedef struct {
 } Line;
 
 typedef struct {
-    i8   buffer[BUFFER_CAP];
+    char buffer[BUFFER_CAP];
     Line lines[BUFFER_CAP];
 } Memory;
 

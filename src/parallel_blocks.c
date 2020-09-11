@@ -1,13 +1,14 @@
 #include <pthread.h>
 #include <stdatomic.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef unsigned char  u8;
-typedef unsigned short u16;
-typedef atomic_ushort  u16Atomic;
-typedef pthread_t      Thread;
+typedef uint8_t              u8;
+typedef uint16_t             u16;
+typedef atomic_uint_fast16_t u16Atomic;
+typedef pthread_t            Thread;
 
 #define BUFFER_CAP 512u
 #define BLOCKS_CAP 512u
@@ -67,7 +68,7 @@ static void* do_work(void* args) {
     Payload* payload = args;
     u16*     buffer = payload->buffer;
     for (;;) {
-        u16 index = atomic_fetch_add(&INDEX, 1);
+        u16 index = (u16)atomic_fetch_add(&INDEX, 1);
         if (BLOCKS_LEN <= index) {
             return NULL;
         }

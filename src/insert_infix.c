@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,7 +7,7 @@
  * `https://deniskyashif.com/2019/02/17/implementing-a-regular-expression-engine/`.
  */
 
-typedef unsigned char u8;
+typedef uint8_t u8;
 
 #define INFIX_OPERATOR '.'
 

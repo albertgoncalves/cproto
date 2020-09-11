@@ -1,8 +1,9 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef unsigned char u8;
+typedef uint8_t u8;
 
 #define U8_MAX 0xFF
 #define N      (u8)10

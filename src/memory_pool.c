@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +6,7 @@
 #define STRING_SIZE 16
 #define MEM_SIZE    3
 
-typedef unsigned char u8;
+typedef uint8_t u8;
 
 typedef struct {
     char string[STRING_SIZE];

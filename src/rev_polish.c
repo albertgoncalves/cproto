@@ -1,10 +1,11 @@
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef unsigned char u8;
-typedef float         f32;
+typedef uint8_t u8;
+typedef float   f32;
 
 static f32 eval_rev_polish(const char* expression, f32* stack, char* buffer) {
     u8 stack_index = 0;

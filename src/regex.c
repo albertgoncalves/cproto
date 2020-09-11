@@ -1,8 +1,8 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef char          i8;
-typedef unsigned char u8;
+typedef uint8_t u8;
 
 #define STATE_CAP 22
 #define STACK_CAP 12
@@ -32,7 +32,7 @@ struct State {
     State*    next;
     State*    next_split;
     StateType type;
-    i8        token;
+    char      token;
     Bool      end;
 };
 
@@ -75,7 +75,7 @@ static State* state_new(Memory* memory) {
     return state;
 }
 
-static void set_token(Memory* memory, LinkStack* stack, i8 token) {
+static void set_token(Memory* memory, LinkStack* stack, char token) {
     if (STACK_CAP <= stack->len) {
         PRINT_ERROR;
         exit(EXIT_FAILURE);
@@ -176,14 +176,15 @@ static void set_one_or_many(Memory* memory, LinkStack* stack) {
     stack->links[stack->len++] = link;
 }
 
-static Link get_nfa(Memory* memory, const i8* postfix_expr) {
+static Link get_nfa(Memory* memory, const char* postfix_expr) {
     /* NOTE: See `https://swtch.com/~rsc/regexp/regexp1.html`. */
     memory->state_len = 0;
     LinkStack stack = {
         .links = memory->link_stack,
         .len = 0,
     };
-    for (i8 token = *postfix_expr++; token != '\0'; token = *postfix_expr++) {
+    for (char token = *postfix_expr++; token != '\0'; token = *postfix_expr++)
+    {
         switch (token) {
         case OP_CONCAT: {
             set_concat(&stack);
@@ -265,8 +266,8 @@ static Bool get_empty_match(Memory* memory, State* state) {
         stack.states[stack.len++] = state; \
     }
 
-static Bool get_match(Memory* memory, Link link, const i8* string) {
-    i8 token = *string;
+static Bool get_match(Memory* memory, Link link, const char* string) {
+    char token = *string;
     if (token == '\0') {
         return get_empty_match(memory, link.first);
     }
@@ -332,7 +333,7 @@ static Bool get_match(Memory* memory, Link link, const i8* string) {
         }
         stack_all.len = 0;
         stack_visited.len = 0;
-        i8 peek = *++string;
+        char peek = *++string;
         for (u8 i = 0; i < stack_tokens.len; ++i) {
             State* state = stack_tokens.states[i];
             if ((token == state->token) && (state->next != NULL)) {
@@ -390,7 +391,7 @@ int main(void) {
     printf("sizeof(State)     : %zu\n"
            "sizeof(u8)        : %zu\n"
            "sizeof(StateType) : %zu\n"
-           "sizeof(i8)        : %zu\n"
+           "sizeof(char)      : %zu\n"
            "sizeof(Bool)      : %zu\n"
            "sizeof(Link)      : %zu\n"
            "sizeof(Memory)    : %zu\n"
@@ -398,7 +399,7 @@ int main(void) {
            sizeof(State),
            sizeof(u8),
            sizeof(StateType),
-           sizeof(i8),
+           sizeof(char),
            sizeof(Bool),
            sizeof(Link),
            sizeof(Memory));

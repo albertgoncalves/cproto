@@ -1,8 +1,9 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef unsigned char  u8;
-typedef unsigned short u16;
+typedef uint8_t  u8;
+typedef uint16_t u16;
 
 #define U8_MAX      0xFF
 #define U8_HALF_MAX 0x7F

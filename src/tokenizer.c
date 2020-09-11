@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10,7 +11,7 @@
 #define IS_SPACE(c) (c < '!')
 #define IS_ALPHA(c) (('A' <= c) && (c <= 'z'))
 
-typedef unsigned char u8;
+typedef uint8_t u8;
 
 typedef enum {
     EMPTY = 0,
