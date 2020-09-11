@@ -86,7 +86,6 @@ runc () {
     clang-format -i "$1" || return
     cppcheck \
         --enable=all \
-        --suppress=knownArgument \
         --suppress=missingIncludeSystem \
         "$1" \
         || return
