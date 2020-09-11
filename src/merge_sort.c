@@ -24,25 +24,18 @@ void merge_sort(i8* array, i8* a, i8* b, u8 l, u8 r) {
         u8 i = 0;
         u8 j = 0;
         u8 k = l;
-        while ((i < n1) && (j < n2)) {
+        for (; (i < n1) && (j < n2); ++k) {
             if (a[i] <= b[j]) {
-                array[k] = a[i];
-                ++i;
+                array[k] = a[i++];
             } else {
-                array[k] = b[j];
-                ++j;
+                array[k] = b[j++];
             }
-            ++k;
         }
         while (i < n1) {
-            array[k] = a[i];
-            ++i;
-            ++k;
+            array[k++] = a[i++];
         }
         while (j < n2) {
-            array[k] = b[j];
-            ++j;
-            ++k;
+            array[k++] = b[j++];
         }
     }
 }
