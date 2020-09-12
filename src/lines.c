@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -13,20 +12,19 @@ typedef float f32;
 
 typedef FILE fileHandle;
 
-typedef struct timeval timeValue;
+#define PCG_INIT_STATE     0x853C49E6748FEA9Bull
+#define PCG_INIT_INCREMENT 0xDA3E39CB94B95BDBull
 
-#define PCG_CONSTANT 0x853c49e6748fea9bull
+#define WIDTH  256u
+#define HEIGHT 256u
+#define SIZE   65536u
 
-#define WIDTH  256
-#define HEIGHT 256
-#define SIZE   65536
-
-#define LIGHT_GRAY 245
-#define DARK_GRAY  40
+#define LIGHT_GRAY 245u
+#define DARK_GRAY  40u
 
 #define FILEPATH "out/lines.bmp"
 
-#pragma pack(push, 1)
+#pragma pack(push, 1u)
 
 typedef struct {
     u16 id;
@@ -41,7 +39,7 @@ typedef struct {
     u32 pixel_height;
     u16 color_planes;
     u16 bits_per_pixel;
-    u8  _[24];
+    u8  _[24u];
 } dibHeader;
 
 typedef struct {
@@ -57,7 +55,7 @@ typedef struct {
 #pragma pack(pop)
 
 typedef enum {
-    darkGray = 0,
+    darkGray = 0u,
     lightGray,
 } color;
 
@@ -74,7 +72,7 @@ typedef struct {
 } pcgRng;
 
 static void set_bmp_header(bmpHeader* header) {
-    header->id = 0x4d42;
+    header->id = 0x4D42u;
     header->file_size = BMP_FILE_SIZE;
     header->header_offset = BMP_HEADER_SIZE;
 }
@@ -83,22 +81,16 @@ static void set_dib_header(dibHeader* header) {
     header->header_size = sizeof(dibHeader);
     header->pixel_width = WIDTH;
     header->pixel_height = HEIGHT;
-    header->color_planes = 1;
-    header->bits_per_pixel = sizeof(u32) * 8;
-}
-
-static u32 get_microseconds(void) {
-    timeValue time;
-    gettimeofday(&time, NULL);
-    return (u32)time.tv_usec;
+    header->color_planes = 1u;
+    header->bits_per_pixel = sizeof(u32) * 8u;
 }
 
 static u32 pcg_32(pcgRng* rng) {
     u64 state = rng->state;
-    rng->state = (state * 6364136223846793005ull) + (rng->increment | 1);
+    rng->state = (state * 6364136223846793005ull) + (rng->increment | 1u);
     u32 xor_shift = (u32)(((state >> 18u) ^ state) >> 27u);
     u32 rotate = (u32)(state >> 59u);
-    return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31));
+    return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31u));
 }
 
 static u32 pcg_32_bound(pcgRng* rng, u32 bound) {
@@ -118,7 +110,7 @@ static void set_line(color* mask, i32 x0, i32 y0, i32 x1, i32 y1) {
     i32 y_sign = y0 < y1 ? 1 : -1;
     i32 error_a = (y_delta < x_delta ? x_delta : -y_delta) / 2;
     for (;;) {
-        mask[(y0 * WIDTH) + x0] = lightGray;
+        mask[(y0 * (i32)WIDTH) + x0] = lightGray;
         if ((x0 == x1) && (y0 == y1)) {
             return;
         }
@@ -135,7 +127,7 @@ static void set_line(color* mask, i32 x0, i32 y0, i32 x1, i32 y1) {
 }
 
 static void set_pixels(color* mask, pixel* pixels) {
-    for (u32 _ = 0; _ < SIZE; ++_) {
+    for (u32 _ = 0u; _ < SIZE; ++_) {
         switch (*mask) {
         case darkGray: {
             pixels->red = DARK_GRAY;
@@ -156,17 +148,17 @@ static void set_pixels(color* mask, pixel* pixels) {
 }
 
 static void write_bmp(fileHandle* file, bmpBuffer* buffer) {
-    if (fwrite(&buffer->bmp_header, 1, sizeof(bmpHeader), file) !=
+    if (fwrite(&buffer->bmp_header, 1u, sizeof(bmpHeader), file) !=
         sizeof(bmpHeader))
     {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->dib_header, 1, sizeof(dibHeader), file) !=
+    if (fwrite(&buffer->dib_header, 1u, sizeof(dibHeader), file) !=
         sizeof(dibHeader))
     {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->pixels, 1, sizeof(pixel[SIZE]), file) !=
+    if (fwrite(&buffer->pixels, 1u, sizeof(pixel[SIZE]), file) !=
         sizeof(pixel[SIZE]))
     {
         exit(EXIT_FAILURE);
@@ -178,16 +170,17 @@ int main(void) {
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    bmpBuffer* buffer = calloc(1, sizeof(bmpBuffer));
+    bmpBuffer* buffer = calloc(1u, sizeof(bmpBuffer));
     if (buffer == NULL) {
         return EXIT_FAILURE;
     }
     set_bmp_header(&buffer->bmp_header);
     set_dib_header(&buffer->dib_header);
-    pcgRng rng;
-    rng.state = PCG_CONSTANT * get_microseconds();
-    rng.increment = PCG_CONSTANT * get_microseconds();
-    for (u8 i = 0; i < 16; ++i) {
+    pcgRng rng = {
+        .state = PCG_INIT_STATE,
+        .increment = PCG_INIT_INCREMENT,
+    };
+    for (u8 i = 0u; i < 16u; ++i) {
         set_line(buffer->mask,
                  (i32)pcg_32_bound(&rng, WIDTH),
                  (i32)pcg_32_bound(&rng, WIDTH),

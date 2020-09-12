@@ -7,11 +7,9 @@ typedef uint64_t u64;
 
 typedef float f32;
 
-typedef struct timeval timeValue;
-
-#define PCG_CONSTANT 0x853c49e6748fea9bull
-
 #define U32_MAX_FLOAT 4294967295.0f
+
+typedef struct timeval timeValue;
 
 typedef struct {
     u32 state;
@@ -21,12 +19,6 @@ typedef struct {
     u64 state;
     u64 increment;
 } pcgRng;
-
-static u32 get_microseconds(void) {
-    timeValue time;
-    gettimeofday(&time, NULL);
-    return (u32)time.tv_usec;
-}
 
 static u32 xor_shift_32(xorShiftRng* rng) {
     u32 state = rng->state;
@@ -39,20 +31,34 @@ static u32 xor_shift_32(xorShiftRng* rng) {
 
 static u32 pcg_32(pcgRng* rng) {
     u64 state = rng->state;
-    rng->state = (state * 6364136223846793005ull) + (rng->increment | 1);
+    rng->state = (state * 6364136223846793005ull) + (rng->increment | 1u);
     u32 xor_shift = (u32)(((state >> 18u) ^ state) >> 27u);
     u32 rotate = (u32)(state >> 59u);
-    return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31));
+    return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31u));
+}
+
+static void pcg_32_init(pcgRng* rng, u64 state, u64 increment) {
+    rng->state = 0u;
+    rng->increment = (increment << 1u) | 1u;
+    pcg_32(rng);
+    rng->state += state;
+    pcg_32(rng);
+}
+
+static u64 get_microseconds(void) {
+    timeValue time;
+    gettimeofday(&time, NULL);
+    return (u64)time.tv_usec;
 }
 
 int main(void) {
     xorShiftRng xor_shift_rng;
-    xor_shift_rng.state = get_microseconds();
+    u64         time = get_microseconds();
+    xor_shift_rng.state = (u32)time;
     pcgRng pcg_rng;
-    pcg_rng.state = PCG_CONSTANT * get_microseconds();
-    pcg_rng.increment = PCG_CONSTANT * get_microseconds();
+    pcg_32_init(&pcg_rng, time + 1, time + 2);
     {
-        u32 n = 1000000;
+        u32 n = 10000000;
         f32 m = (f32)n;
         f32 xor_shift_mean = 0.0f;
         f32 pcg_mean = 0.0f;
