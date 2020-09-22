@@ -24,30 +24,58 @@ struct Rope {
     } items;
     Type type;
     u8   weight;
+    u8   slot;
 };
 
-static Rope* leaf(char value) {
-    Rope* rope = malloc(sizeof(Rope));
-    if (rope == NULL) {
+#define ROPE_CAP 64u
+
+typedef struct {
+    Rope ropes[ROPE_CAP];
+    u8   slots[ROPE_CAP];
+    u8   len;
+} Memory;
+
+static Memory* init(void) {
+    Memory* memory = calloc(1u, sizeof(Memory));
+    if (memory == NULL) {
         exit(EXIT_FAILURE);
     }
+    for (u8 i = 0; i < ROPE_CAP; ++i) {
+        memory->slots[memory->len++] = i;
+    }
+    return memory;
+}
+
+static Rope* alloc(Memory* memory) {
+    if (memory->len == 0) {
+        exit(EXIT_FAILURE);
+    }
+    u8    slot = memory->slots[--memory->len];
+    Rope* rope = &memory->ropes[slot];
+    rope->slot = slot;
+    return rope;
+}
+
+static void dealloc(Memory* memory, Rope* rope) {
+    memory->slots[memory->len++] = rope->slot;
+}
+
+static Rope* leaf(Memory* memory, char value) {
+    Rope* rope = alloc(memory);
     rope->weight = 1;
     rope->type = LEAF;
     rope->items.value = value;
     return rope;
 }
 
-static Rope* concat(Rope* left, Rope* right) {
+static Rope* concat(Memory* memory, Rope* left, Rope* right) {
     if (left == NULL) {
         return right;
     }
     if (right == NULL) {
         return left;
     }
-    Rope* rope = malloc(sizeof(Rope));
-    if (rope == NULL) {
-        exit(EXIT_FAILURE);
-    }
+    Rope* rope = alloc(memory);
     rope->weight = (u8)(left->weight + right->weight);
     rope->type = NODE;
     rope->items.pair.left = left;
@@ -55,8 +83,8 @@ static Rope* concat(Rope* left, Rope* right) {
     return rope;
 }
 
-Rope* new_(const char*, u8, u8);
-Rope* new_(const char* string, u8 i, u8 j) {
+Rope* new_(Memory*, const char*, u8, u8);
+Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
     if (i == j) {
         return NULL;
     }
@@ -66,14 +94,16 @@ Rope* new_(const char* string, u8 i, u8 j) {
         j = x;
     }
     if ((j - i) == 1) {
-        return leaf(string[i]);
+        return leaf(memory, string[i]);
     }
     u8 m = (u8)(((j - i) / 2) + i);
-    return concat(new_(string, i, m), new_(string, m, j));
+    return concat(memory,
+                  new_(memory, string, i, m),
+                  new_(memory, string, m, j));
 }
 
-Pair _split(Rope*, i8);
-Pair _split(Rope* rope, i8 i) {
+Pair _split(Memory*, Rope*, i8);
+Pair _split(Memory* memory, Rope* rope, i8 i) {
     Pair pair = {0};
     switch (rope->type) {
     case LEAF: {
@@ -88,13 +118,13 @@ Pair _split(Rope* rope, i8 i) {
         i8    weight = (i8)rope->items.pair.left->weight;
         Rope* left = rope->items.pair.left;
         Rope* right = rope->items.pair.right;
-        free(rope);
+        dealloc(memory, rope);
         if (i < weight) {
-            pair = _split(left, i);
-            pair.right = concat(pair.right, right);
+            pair = _split(memory, left, i);
+            pair.right = concat(memory, pair.right, right);
         } else {
-            pair = _split(right, (i8)(i - weight));
-            pair.left = concat(left, pair.left);
+            pair = _split(memory, right, (i8)(i - weight));
+            pair.left = concat(memory, left, pair.left);
         }
         break;
     }
@@ -102,28 +132,28 @@ Pair _split(Rope* rope, i8 i) {
     return pair;
 }
 
-static Rope* insert(Rope* a, Rope* b, i8 i) {
-    Pair pair = _split(a, i);
-    return concat(concat(pair.left, b), pair.right);
+static Rope* insert(Memory* memory, Rope* a, Rope* b, i8 i) {
+    Pair pair = _split(memory, a, i);
+    return concat(memory, concat(memory, pair.left, b), pair.right);
 }
 
-void free_(Rope*);
-void free_(Rope* rope) {
+void free_(Memory*, Rope*);
+void free_(Memory* memory, Rope* rope) {
     switch (rope->type) {
     case LEAF: {
-        free(rope);
+        dealloc(memory, rope);
         break;
     }
     case NODE: {
-        free_(rope->items.pair.left);
-        free_(rope->items.pair.right);
-        free(rope);
+        free_(memory, rope->items.pair.left);
+        free_(memory, rope->items.pair.right);
+        dealloc(memory, rope);
         break;
     }
     }
 }
 
-static Rope* delete_(Rope* rope, i8 i, i8 j) {
+static Rope* delete_(Memory* memory, Rope* rope, i8 i, i8 j) {
     if (i == j) {
         return rope;
     }
@@ -134,34 +164,59 @@ static Rope* delete_(Rope* rope, i8 i, i8 j) {
     } else {
         j = (i8)(j - i);
     }
-    Pair  pair = _split(rope, i);
+    Pair  pair = _split(memory, rope, i);
     Rope* left = pair.left;
     Rope* right = pair.right;
     if (right != NULL) {
-        pair = _split(right, j);
-        free_(pair.left);
-        return concat(left, pair.right);
+        pair = _split(memory, right, j);
+        free_(memory, pair.left);
+        return concat(memory, left, pair.right);
     }
     return left;
 }
 
-void ping(Rope*, i8);
-void ping(Rope* rope, i8 i) {
+Rope* balance(Memory*, Rope*);
+Rope* balance(Memory* memory, Rope* rope) {
     switch (rope->type) {
     case LEAF: {
-        printf("\'%c\'\n", rope->items.value);
+        break;
+    }
+    case NODE: {
+        Pair  pair = _split(memory, rope, (i8)(rope->weight / 2));
+        Rope* left = pair.left;
+        Rope* right = pair.right;
+        if (left != NULL) {
+            left = balance(memory, left);
+        }
+        if (right != NULL) {
+            right = balance(memory, right);
+        }
+        rope = concat(memory, left, right);
+        break;
+    }
+    }
+    return rope;
+}
+
+char ping(Rope*, i8);
+char ping(Rope* rope, i8 i) {
+    char value = '\0';
+    switch (rope->type) {
+    case LEAF: {
+        value = rope->items.value;
         break;
     }
     case NODE: {
         i8 weight = (i8)rope->items.pair.left->weight;
         if (i < weight) {
-            ping(rope->items.pair.left, i);
+            value = ping(rope->items.pair.left, i);
         } else {
-            ping(rope->items.pair.right, (i8)(i - weight));
+            value = ping(rope->items.pair.right, (i8)(i - weight));
         }
         break;
     }
     }
+    return value;
 }
 
 void _print_string(Rope*);
@@ -228,29 +283,37 @@ static u8 len(const char* string) {
     return i;
 }
 
+static const char* STRING = "12345_a_b_c_??";
+
 int main(void) {
     printf("sizeof(Type)   : %zu\n"
            "sizeof(Rope*)  : %zu\n"
            "sizeof(Pair)   : %zu\n"
-           "sizeof(Rope)   : %zu\n",
+           "sizeof(Rope)   : %zu\n"
+           "sizeof(Memory) : %zu\n",
            sizeof(Type),
            sizeof(Rope*),
            sizeof(Pair),
-           sizeof(Rope));
-    const char* a = "12345";
-    const char* b = "_a_b_c_";
-    const char* c = "??";
-    Rope*       rope = insert(new_(a, 0, len(a)), new_(b, 0, len(b)), 4);
-    rope = delete_(rope, 3, 6);
-    rope = insert(rope, new_(c, 0, len(c)), 2);
-    rope = delete_(rope, 3, 4);
+           sizeof(Rope),
+           sizeof(Memory));
+    Memory* memory = init();
+    Rope*   rope = insert(memory,
+                        new_(memory, STRING, 0, 5),
+                        new_(memory, STRING, 5, 12),
+                        4);
+    rope = delete_(memory, rope, 3, 6);
+    rope = insert(memory, rope, new_(memory, STRING, 12, 14), 2);
+    rope = delete_(memory, rope, 3, 4);
+    rope = insert(memory, rope, new_(memory, STRING, 5, 11), 0);
+    rope = delete_(memory, rope, -1, 1);
+    rope = balance(memory, rope);
     printf("\n");
     print_rope(rope);
     printf("\n");
     print_string(rope);
-    printf("\n");
-    ping(rope, 5);
-    printf("\n");
-    free_(rope);
+    printf("\nping(rope, 6) : \'%c\'\n", ping(rope, 6));
+    free_(memory, rope);
+    printf("\nmemory->len : %hhu\n", memory->len);
+    free(memory);
     return EXIT_SUCCESS;
 }
