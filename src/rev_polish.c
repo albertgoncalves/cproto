@@ -71,13 +71,58 @@ static f32 eval_rev_polish(const char* expression, f32* stack, char* buffer) {
             buffer[buffer_index] = '\0';
             break;
         }
+        case '0': {
+            buffer[buffer_index++] = '0';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '1': {
+            buffer[buffer_index++] = '1';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '2': {
+            buffer[buffer_index++] = '2';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '3': {
+            buffer[buffer_index++] = '3';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '4': {
+            buffer[buffer_index++] = '4';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '5': {
+            buffer[buffer_index++] = '5';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '6': {
+            buffer[buffer_index++] = '6';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '7': {
+            buffer[buffer_index++] = '7';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '8': {
+            buffer[buffer_index++] = '8';
+            buffer[buffer_index] = '\0';
+            break;
+        }
+        case '9': {
+            buffer[buffer_index++] = '9';
+            buffer[buffer_index] = '\0';
+            break;
+        }
         default: {
-            if (('0' <= token) && (token <= '9')) {
-                buffer[buffer_index++] = token;
-                buffer[buffer_index] = '\0';
-            } else {
-                exit(EXIT_FAILURE);
-            }
+            exit(EXIT_FAILURE);
         }
         }
     }
