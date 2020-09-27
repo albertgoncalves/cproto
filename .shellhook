@@ -89,7 +89,7 @@ runc () {
         --suppress=missingIncludeSystem \
         "$1" \
         || return
-    pin=$PWD
+    pwd_=$PWD
     cp "$1" "$WD/build/$handle.c"
     (
         cd "$WD/build" || return
@@ -110,7 +110,7 @@ runc () {
             -pthread \
             "$handle.c" \
             || return
-        cd "$pin" || return
+        cd "$pwd_" || return
         if [ -z "$2" ]; then
             "$WD/bin/${handle}_sanitize"
         else
