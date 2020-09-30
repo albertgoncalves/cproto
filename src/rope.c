@@ -27,12 +27,15 @@ struct Rope {
     u8   slot;
 };
 
-#define ROPE_CAP 64u
+#define CAP 64u
 
 typedef struct {
-    Rope ropes[ROPE_CAP];
-    u8   slots[ROPE_CAP];
-    u8   len;
+    Rope  ropes[CAP];
+    u8    len;
+    u8    slots[CAP];
+    u8    index;
+    u8    cap;
+    Rope* queue[CAP];
 } Memory;
 
 static Memory* init(void) {
@@ -40,9 +43,10 @@ static Memory* init(void) {
     if (memory == NULL) {
         exit(EXIT_FAILURE);
     }
-    for (u8 i = 0; i < ROPE_CAP; ++i) {
+    for (u8 i = 0; i < CAP; ++i) {
         memory->slots[memory->len++] = i;
     }
+    memory->cap = CAP;
     return memory;
 }
 
@@ -83,8 +87,53 @@ static Rope* concat(Memory* memory, Rope* left, Rope* right) {
     return rope;
 }
 
-Rope* new_(Memory*, const char*, u8, u8);
-Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
+static void push(Memory* memory, Rope* rope) {
+    if (memory->cap == 0) {
+        exit(EXIT_FAILURE);
+    }
+    memory->queue[memory->index] = rope;
+    memory->index = (u8)((memory->index + 1) % (u8)CAP);
+    --memory->cap;
+    return;
+}
+
+static Rope* pop(Memory* memory) {
+    if (CAP <= memory->cap) {
+        return NULL;
+    }
+    u8    index = (u8)((memory->index + memory->cap) % (u8)CAP);
+    Rope* rope = memory->queue[index];
+    ++memory->cap;
+    return rope;
+}
+
+static Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
+    if (i == j) {
+        return NULL;
+    }
+    if (j < i) {
+        u8 x = i;
+        i = j;
+        j = x;
+    }
+    for (u8 k = i; k < j; ++k) {
+        push(memory, leaf(memory, string[k]));
+    }
+    while (1 < (CAP - memory->cap)) {
+        Rope* left = pop(memory);
+        Rope* right = pop(memory);
+        if (left->weight < right->weight) {
+            push(memory, left);
+            left = right;
+            right = pop(memory);
+        }
+        push(memory, concat(memory, left, right));
+    }
+    return pop(memory);
+}
+
+Rope* new_rec(Memory*, const char*, u8, u8);
+Rope* new_rec(Memory* memory, const char* string, u8 i, u8 j) {
     if (i == j) {
         return NULL;
     }
