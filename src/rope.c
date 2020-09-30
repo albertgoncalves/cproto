@@ -107,6 +107,25 @@ static Rope* pop(Memory* memory) {
     return rope;
 }
 
+Rope* new_rec(Memory*, const char*, u8, u8);
+Rope* new_rec(Memory* memory, const char* string, u8 i, u8 j) {
+    if (i == j) {
+        return NULL;
+    }
+    if (j < i) {
+        u8 x = i;
+        i = j;
+        j = x;
+    }
+    if ((j - i) == 1) {
+        return leaf(memory, string[i]);
+    }
+    u8 m = (u8)(((j - i) / 2) + i);
+    return concat(memory,
+                  new_rec(memory, string, i, m),
+                  new_rec(memory, string, m, j));
+}
+
 static Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
     if (i == j) {
         return NULL;
@@ -130,25 +149,6 @@ static Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
         push(memory, concat(memory, left, right));
     }
     return pop(memory);
-}
-
-Rope* new_rec(Memory*, const char*, u8, u8);
-Rope* new_rec(Memory* memory, const char* string, u8 i, u8 j) {
-    if (i == j) {
-        return NULL;
-    }
-    if (j < i) {
-        u8 x = i;
-        i = j;
-        j = x;
-    }
-    if ((j - i) == 1) {
-        return leaf(memory, string[i]);
-    }
-    u8 m = (u8)(((j - i) / 2) + i);
-    return concat(memory,
-                  new_(memory, string, i, m),
-                  new_(memory, string, m, j));
 }
 
 Pair _split(Memory*, Rope*, i8);
@@ -186,19 +186,38 @@ static Rope* insert(Memory* memory, Rope* a, Rope* b, i8 i) {
     return concat(memory, concat(memory, pair.left, b), pair.right);
 }
 
-void free_(Memory*, Rope*);
-void free_(Memory* memory, Rope* rope) {
+void free_rec(Memory*, Rope*);
+void free_rec(Memory* memory, Rope* rope) {
     switch (rope->type) {
     case LEAF: {
         dealloc(memory, rope);
         break;
     }
     case NODE: {
-        free_(memory, rope->items.pair.left);
-        free_(memory, rope->items.pair.right);
+        free_rec(memory, rope->items.pair.left);
+        free_rec(memory, rope->items.pair.right);
         dealloc(memory, rope);
         break;
     }
+    }
+}
+
+static void free_(Memory* memory, Rope* rope) {
+    push(memory, rope);
+    while ((CAP - memory->cap) != 0) {
+        rope = pop(memory);
+        switch (rope->type) {
+        case LEAF: {
+            dealloc(memory, rope);
+            break;
+        }
+        case NODE: {
+            push(memory, rope->items.pair.left);
+            push(memory, rope->items.pair.right);
+            dealloc(memory, rope);
+            break;
+        }
+        }
     }
 }
 
