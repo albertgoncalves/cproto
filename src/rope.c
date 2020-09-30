@@ -31,11 +31,8 @@ struct Rope {
 
 typedef struct {
     Rope  ropes[CAP];
-    u8    len;
     u8    slots[CAP];
-    u8    index;
-    u8    cap;
-    Rope* queue[CAP];
+    u8    len;
 } Memory;
 
 static Memory* init(void) {
@@ -46,7 +43,6 @@ static Memory* init(void) {
     for (u8 i = 0; i < CAP; ++i) {
         memory->slots[memory->len++] = i;
     }
-    memory->cap = CAP;
     return memory;
 }
 
@@ -87,28 +83,8 @@ static Rope* concat(Memory* memory, Rope* left, Rope* right) {
     return rope;
 }
 
-static void push(Memory* memory, Rope* rope) {
-    if (memory->cap == 0) {
-        exit(EXIT_FAILURE);
-    }
-    memory->queue[memory->index] = rope;
-    memory->index = (u8)((memory->index + 1) % (u8)CAP);
-    --memory->cap;
-    return;
-}
-
-static Rope* pop(Memory* memory) {
-    if (CAP <= memory->cap) {
-        return NULL;
-    }
-    u8    index = (u8)((memory->index + memory->cap) % (u8)CAP);
-    Rope* rope = memory->queue[index];
-    ++memory->cap;
-    return rope;
-}
-
-Rope* new_rec(Memory*, const char*, u8, u8);
-Rope* new_rec(Memory* memory, const char* string, u8 i, u8 j) {
+Rope* new_(Memory*, const char*, u8, u8);
+Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
     if (i == j) {
         return NULL;
     }
@@ -122,33 +98,8 @@ Rope* new_rec(Memory* memory, const char* string, u8 i, u8 j) {
     }
     u8 m = (u8)(((j - i) / 2) + i);
     return concat(memory,
-                  new_rec(memory, string, i, m),
-                  new_rec(memory, string, m, j));
-}
-
-static Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
-    if (i == j) {
-        return NULL;
-    }
-    if (j < i) {
-        u8 x = i;
-        i = j;
-        j = x;
-    }
-    for (u8 k = i; k < j; ++k) {
-        push(memory, leaf(memory, string[k]));
-    }
-    while (1 < (CAP - memory->cap)) {
-        Rope* left = pop(memory);
-        Rope* right = pop(memory);
-        if (left->weight < right->weight) {
-            push(memory, left);
-            left = right;
-            right = pop(memory);
-        }
-        push(memory, concat(memory, left, right));
-    }
-    return pop(memory);
+                  new_(memory, string, i, m),
+                  new_(memory, string, m, j));
 }
 
 Pair _split(Memory*, Rope*, i8);
@@ -186,38 +137,19 @@ static Rope* insert(Memory* memory, Rope* a, Rope* b, i8 i) {
     return concat(memory, concat(memory, pair.left, b), pair.right);
 }
 
-void free_rec(Memory*, Rope*);
-void free_rec(Memory* memory, Rope* rope) {
+void free_(Memory*, Rope*);
+void free_(Memory* memory, Rope* rope) {
     switch (rope->type) {
     case LEAF: {
         dealloc(memory, rope);
         break;
     }
     case NODE: {
-        free_rec(memory, rope->items.pair.left);
-        free_rec(memory, rope->items.pair.right);
+        free_(memory, rope->items.pair.left);
+        free_(memory, rope->items.pair.right);
         dealloc(memory, rope);
         break;
     }
-    }
-}
-
-static void free_(Memory* memory, Rope* rope) {
-    push(memory, rope);
-    while ((CAP - memory->cap) != 0) {
-        rope = pop(memory);
-        switch (rope->type) {
-        case LEAF: {
-            dealloc(memory, rope);
-            break;
-        }
-        case NODE: {
-            push(memory, rope->items.pair.left);
-            push(memory, rope->items.pair.right);
-            dealloc(memory, rope);
-            break;
-        }
-        }
     }
 }
 
