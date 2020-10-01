@@ -27,12 +27,12 @@ struct Rope {
     u8   slot;
 };
 
-#define CAP 64u
+#define SIZE 64u
 
 typedef struct {
-    Rope  ropes[CAP];
-    u8    slots[CAP];
-    u8    len;
+    Rope ropes[SIZE];
+    u8   slots[SIZE];
+    u8   index;
 } Memory;
 
 static Memory* init(void) {
@@ -40,24 +40,24 @@ static Memory* init(void) {
     if (memory == NULL) {
         exit(EXIT_FAILURE);
     }
-    for (u8 i = 0; i < CAP; ++i) {
-        memory->slots[memory->len++] = i;
+    for (u8 i = 0; i < SIZE; ++i) {
+        memory->slots[memory->index++] = i;
     }
     return memory;
 }
 
 static Rope* alloc(Memory* memory) {
-    if (memory->len == 0) {
+    if (memory->index == 0) {
         exit(EXIT_FAILURE);
     }
-    u8    slot = memory->slots[--memory->len];
+    u8    slot = memory->slots[--memory->index];
     Rope* rope = &memory->ropes[slot];
     rope->slot = slot;
     return rope;
 }
 
 static void dealloc(Memory* memory, Rope* rope) {
-    memory->slots[memory->len++] = rope->slot;
+    memory->slots[memory->index++] = rope->slot;
 }
 
 static Rope* leaf(Memory* memory, char value) {
@@ -283,7 +283,15 @@ static u8 len(const char* string) {
     return i;
 }
 
-static const char* STRING = "12345_a_b_c_??";
+static const char* STRING = "12345_a_b_c_??ABC";
+
+#define PRINT_ALL(rope)     \
+    {                       \
+        printf("\n");       \
+        print_rope(rope);   \
+        printf("\n");       \
+        print_string(rope); \
+    }
 
 int main(void) {
     printf("sizeof(Type)   : %zu\n"
@@ -297,23 +305,21 @@ int main(void) {
            sizeof(Rope),
            sizeof(Memory));
     Memory* memory = init();
-    Rope*   rope = insert(memory,
-                        new_(memory, STRING, 0, 5),
-                        new_(memory, STRING, 5, 12),
-                        4);
+    Rope*   rope = new_(memory, STRING, 0, len(STRING));
+    PRINT_ALL(rope);
+    rope = insert(memory, new_(memory, STRING, 0, 5), rope, 4);
     rope = delete_(memory, rope, 3, 6);
     rope = insert(memory, rope, new_(memory, STRING, 12, 14), 2);
     rope = delete_(memory, rope, 3, 4);
     rope = insert(memory, rope, new_(memory, STRING, 5, 11), 0);
     rope = delete_(memory, rope, -1, 1);
     rope = balance(memory, rope);
-    printf("\n");
-    print_rope(rope);
-    printf("\n");
-    print_string(rope);
+    PRINT_ALL(rope);
     printf("\nping(rope, 6) : \'%c\'\n", ping(rope, 6));
     free_(memory, rope);
-    printf("\nmemory->len : %hhu\n", memory->len);
+    printf("\nmemory->index : %hhu\n", memory->index);
     free(memory);
     return EXIT_SUCCESS;
 }
+
+#undef PRINT_ALL
