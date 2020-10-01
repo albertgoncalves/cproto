@@ -34,6 +34,9 @@ static usize distance(const char* a, const char* b) {
         SWAP(usize, n, m);
     }
     usize* buffer = malloc(sizeof(usize) * (m + 1));
+    if (buffer == NULL) {
+        exit(EXIT_FAILURE);
+    }
     for (usize j = 0; j < m; ++j) {
         buffer[j] = j;
     }
