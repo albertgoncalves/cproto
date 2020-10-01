@@ -321,5 +321,3 @@ int main(void) {
     free(memory);
     return EXIT_SUCCESS;
 }
-
-#undef PRINT_ALL
