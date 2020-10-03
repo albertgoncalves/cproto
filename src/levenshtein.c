@@ -43,9 +43,12 @@ static usize distance(const char* a, const char* b) {
     for (usize i = 0; i < n; ++i) {
         usize previous = i + 1;
         for (usize j = 0; j < m; ++j) {
-            usize penalty = a[i] != b[j];
-            usize cost =
-                MIN(MIN(previous + 1, buffer[j + 1] + 1), buffer[j] + penalty);
+            usize cost;
+            if (a[i] == b[j]) {
+                cost = buffer[j];
+            } else {
+                cost = MIN(MIN(previous, buffer[j + 1]), buffer[j]) + 1;
+            }
             buffer[j] = previous;
             previous = cost;
         }
@@ -74,6 +77,13 @@ int main(void) {
     TEST("the quick brown fox jumps over the lazy dog",
          "pack my box with five dozen liquor jugs",
          33);
+    TEST("what is a sentence", "this is another thing", 13);
+    TEST(
+        "This has a wide range of applications, for instance, spell checkers, "
+        "correction systems for optical character recognition, etc.",
+        "Levenshtein distance is named after the Russian scientist Vladimir "
+        "Levenshtein, who devised the algorithm in 1965.",
+        99);
     printf("\n");
     return EXIT_SUCCESS;
 }
