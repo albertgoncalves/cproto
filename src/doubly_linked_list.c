@@ -16,16 +16,24 @@ typedef struct {
     Node* last;
 } List;
 
-#define SIZE 8
-
 typedef struct {
-    Node  buffer[SIZE];
     List  list;
     usize index;
+    usize size;
+    Node  buffer[];
 } Memory;
 
+static Memory* init(usize size) {
+    Memory* memory = calloc(1, sizeof(Memory) + (sizeof(Node) * size));
+    if (memory == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memory->size = size;
+    return memory;
+}
+
 static Node* alloc(Memory* memory, const char* value) {
-    if (SIZE <= memory->index) {
+    if (memory->size <= memory->index) {
         exit(EXIT_FAILURE);
     }
     Node* node = &memory->buffer[memory->index++];
@@ -85,7 +93,7 @@ int main(void) {
            sizeof(Node),
            sizeof(List),
            sizeof(Memory));
-    Memory* memory = calloc(1, sizeof(Memory));
+    Memory* memory = init(6);
     List*   list = &memory->list;
     INSERT_FIRST("is");
     INSERT_LAST("out");
@@ -93,8 +101,8 @@ int main(void) {
     INSERT_LAST("there");
     INSERT_LAST("!");
     INSERT_FIRST("the");
-    print(&memory->list);
-    print_rev(&memory->list);
+    print(list);
+    print_rev(list);
     free(memory);
     return EXIT_SUCCESS;
 }
