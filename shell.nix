@@ -7,6 +7,7 @@ mkShell {
         glibcLocales
         shellcheck
         valgrind
+        xorg.libX11
     ];
     shellHook = ''
         . .shellhook
