@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef uint8_t u8;
+
 typedef int32_t i32;
 
 #define EXPOSURE_MASK  ExposureMask
@@ -13,21 +15,25 @@ i32 main(void) {
     if (display == NULL) {
         return EXIT_FAILURE;
     }
-    i32    screen = DefaultScreen(display);
-    Window window = XCreateSimpleWindow(display,
-                                        RootWindow(display, screen),
+    Screen* screen = DefaultScreenOfDisplay(display);
+    i32     screen_id = DefaultScreen(display);
+    Window  window = XCreateSimpleWindow(display,
+                                        RootWindowOfScreen(screen),
                                         100,
                                         100,
                                         500,
                                         300,
                                         1,
-                                        WhitePixel(display, screen),
-                                        BlackPixel(display, screen));
+                                        WhitePixel(display, screen_id),
+                                        BlackPixel(display, screen_id));
+    XClearWindow(display, window);
     XSelectInput(display, window, EXPOSURE_MASK | KEY_PRESS_MASK);
-    XMapWindow(display, window);
+    XMapRaised(display, window);
     XEvent event;
-    for (;;) {
+    for (u8 _ = 0; _ < 3; ++_) {
         XNextEvent(display, &event);
     }
+    XDestroyWindow(display, window);
+    XCloseDisplay(display);
     return EXIT_SUCCESS;
 }
