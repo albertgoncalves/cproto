@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef uint8_t u8;
+typedef uint8_t  u8;
+typedef uint64_t u64;
 
 typedef int32_t i32;
 
@@ -16,16 +17,9 @@ i32 main(void) {
         return EXIT_FAILURE;
     }
     Screen* screen = DefaultScreenOfDisplay(display);
-    i32     screen_id = DefaultScreen(display);
-    Window  window = XCreateSimpleWindow(display,
-                                        RootWindowOfScreen(screen),
-                                        100,
-                                        100,
-                                        500,
-                                        300,
-                                        1,
-                                        WhitePixel(display, screen_id),
-                                        BlackPixel(display, screen_id));
+    u64     root = RootWindowOfScreen(screen);
+    Window  window =
+        XCreateSimpleWindow(display, root, 100, 100, 100, 100, 0, 0, 0);
     XClearWindow(display, window);
     XSelectInput(display, window, EXPOSURE_MASK | KEY_PRESS_MASK);
     XMapRaised(display, window);
