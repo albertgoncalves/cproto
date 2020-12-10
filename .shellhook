@@ -12,7 +12,6 @@ done
 export FLAGS=(
     "-fshort-enums"
     "-march=native"
-    "-mavx"
     "-O1"
     "-std=gnu11"
     "-Wall"
