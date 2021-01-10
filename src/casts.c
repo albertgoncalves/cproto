@@ -10,6 +10,9 @@ typedef int8_t  i8;
 typedef int16_t i16;
 typedef int32_t i32;
 
+typedef float  f32;
+typedef double f64;
+
 #define U8_MAX  0xFF
 #define U32_MAX 0xFFFFFFFF
 
@@ -30,6 +33,18 @@ i32 main(void) {
         printf("\n%-12hdi16\n%-12hui32 -> *((u16*)(&...))\n",
                x,
                *((u16*)(&x)));
+    }
+    {
+        u32 x = 1077936128;
+        printf("\n%-12uu32\n%-12.1fu32 -> *((f32*)(&...))\n",
+               x,
+               (f64) * ((f32*)(&x)));
+    }
+    {
+        u32 x = 1086324736;
+        printf("\n%-12uu32\n%-12.1fu32 -> *((f32*)(&...))\n",
+               x,
+               (f64) * ((f32*)(&x)));
     }
     return EXIT_SUCCESS;
 }
