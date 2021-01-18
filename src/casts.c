@@ -16,6 +16,12 @@ typedef double f64;
 #define U8_MAX  0xFF
 #define U32_MAX 0xFFFFFFFF
 
+typedef union {
+    u32 u32;
+    i32 i32;
+    f32 f32;
+} Union;
+
 i32 main(void) {
     {
         u32 x = U32_MAX - 299999999;
@@ -30,21 +36,31 @@ i32 main(void) {
     }
     {
         i16 x = -10;
-        printf("\n%-12hdi16\n%-12hui32 -> *((u16*)(&...))\n",
-               x,
-               *((u16*)(&x)));
+        printf("\n%-12hdi16\n%-12hu*((u16*)(&...))\n", x, *((u16*)(&x)));
     }
     {
-        u32 x = 1077936128;
-        printf("\n%-12uu32\n%-12.1fu32 -> *((f32*)(&...))\n",
-               x,
-               (f64) * ((f32*)(&x)));
+        Union x = {
+            .u32 = 1077936128,
+        };
+        printf("\n%-12uu32\n%-12.1f*((f32*)(&...))\n", x.u32, (f64)x.f32);
     }
     {
-        u32 x = 1086324736;
-        printf("\n%-12uu32\n%-12.1fu32 -> *((f32*)(&...))\n",
-               x,
-               (f64) * ((f32*)(&x)));
+        Union x = {
+            .u32 = 1086324736,
+        };
+        printf("\n%-12uu32\n%-12.1f*((f32*)(&...))\n", x.u32, (f64)x.f32);
+    }
+    {
+        Union x = {
+            .f32 = -1.6f,
+        };
+        printf("\n%-12.1ff32\n%-12d*((i32*)(&...))\n", (f64)x.f32, x.i32);
+    }
+    {
+        Union x = {
+            .f32 = -1.0f,
+        };
+        printf("\n%-12.1ff32\n%-12d*((i32*)(&...))\n", (f64)x.f32, x.i32);
     }
     return EXIT_SUCCESS;
 }
