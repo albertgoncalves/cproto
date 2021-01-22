@@ -51,10 +51,8 @@ static f32 get_std(f32* xs, usize n) {
 
 static f32 get_gaussian_pdf(f32 mu, f32 sigma, f32 x) {
     EXIT_IF(sigma <= 0.0f);
-    f32 two_sigma_squared = sigma * sigma * 2.0f;
-    f32 delta = x - mu;
-    return (1 / sqrtf(PI * two_sigma_squared)) *
-           (expf(-((delta * delta) / two_sigma_squared)));
+    f32 t = (x - mu) / sigma;
+    return (1.0f / (sigma * sqrtf(2.0f * PI))) * expf((t * t) / -2.0f);
 }
 
 i32 main(void) {
@@ -67,8 +65,11 @@ i32 main(void) {
            (f64)mu,
            (f64)sigma);
     {
-        // NOTE: $ R
-        //       > print(dnorm(xs, mu, sigma))
+        // NOTE: $ python3
+        //       >>> from numpy import mean, std
+        //       >>> from scipy.stats import norm
+        //       >>> xs = [0, 1, 2, 2.5, 3, 4, 5]
+        //       >>> norm.pdf(xs, mean(xs), std(xs))
         printf("[ ");
         for (usize i = 0; i < n; ++i) {
             printf("%.5f ", (f64)get_gaussian_pdf(mu, sigma, xs[i]));
