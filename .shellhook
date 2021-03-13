@@ -11,6 +11,7 @@ done
 # NOTE: See `https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html`.
 export FLAGS=(
     "-fshort-enums"
+    "-funsigned-char"
     "-march=native"
     "-O1"
     "-std=gnu11"
