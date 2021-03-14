@@ -10,7 +10,7 @@ typedef size_t   usize;
 
 typedef int32_t i32;
 
-#define CAP_MEMORY_BUFFER 32
+#define CAP_MEMORY_BUFFER 64
 
 typedef struct {
     usize len;
@@ -18,34 +18,76 @@ typedef struct {
 } Memory;
 
 typedef struct {
-    u8   len;
-    char chars[];
+    u32  len;
+    char buffer[];
 } String;
 
-#define PRINT_STRING(string) printf("%.*s\n", (i32)string->len, string->chars)
+typedef struct {
+    u32 len;
+    u32 buffer[];
+} Array;
 
-static String* alloc_string(Memory* memory, u8 len, const char* chars) {
-    usize start = memory->len;
-    usize gap = start % alignof(String);
-    if (gap != 0) {
-        start += alignof(String) - gap;
+#define PRINT_STRING(string) printf("%.*s\n", (i32)string->len, string->buffer)
+
+#define SET_START_END(memory, start, type_parent, type_data)           \
+    {                                                                  \
+        start = memory->len;                                           \
+        usize gap = start % alignof(type_parent);                      \
+        if (gap != 0) {                                                \
+            start += alignof(type_parent) - gap;                       \
+        }                                                              \
+        end = start + sizeof(type_parent) + (len * sizeof(type_data)); \
+        if (CAP_MEMORY_BUFFER <= end) {                                \
+            return NULL;                                               \
+        }                                                              \
+        memory->len = end;                                             \
     }
-    usize end = start + sizeof(String) + len;
-    if (CAP_MEMORY_BUFFER <= end) {
-        return NULL;
-    }
-    String* string = (String*)&(memory->buffer[start]);
-    string->len = len;
-    memory->len = end;
-    memcpy(&string->chars, chars, len);
-    return string;
+
+static String* alloc_copy_string(Memory* memory, u32 len, const char* string) {
+    usize start;
+    usize end;
+    SET_START_END(memory, start, String, char);
+    String* x = (String*)&(memory->buffer[start]);
+    x->len = len;
+    memcpy(&x->buffer, string, len);
+    return x;
 }
+
+#define ALLOC_EMPTY(fn, type_parent, type_data)                  \
+    static type_parent* fn(Memory* memory, u32 len) {            \
+        usize start;                                             \
+        usize end;                                               \
+        SET_START_END(memory, start, type_parent, type_data);    \
+        type_parent* x = (type_parent*)&(memory->buffer[start]); \
+        x->len = len;                                            \
+        return x;                                                \
+    }
+
+ALLOC_EMPTY(alloc_empty_string, String, char)
+ALLOC_EMPTY(alloc_empty_array, Array, u32)
 
 i32 main(void) {
     Memory* memory = calloc(1, sizeof(Memory));
-    String* x = alloc_string(memory, 13, "Hello, world!");
-    String* y = alloc_string(memory, 8, "Goodbye?");
-    String* z = alloc_string(memory, 3, "Ok.");
+    String* x = alloc_copy_string(memory,
+                                  sizeof("Hello, world!") - 1,
+                                  "Hello, world!");
+    Array*  y = alloc_empty_array(memory, 5);
+    {
+        if (!y) {
+            return EXIT_FAILURE;
+        }
+        u32 len = (u32)y->len;
+        for (u32 i = 0; i < len; ++i) {
+            y->buffer[i] = len - i;
+        }
+    }
+    String* z = alloc_empty_string(memory, sizeof("Goodbye!") - 1);
+    {
+        if (!z) {
+            return EXIT_FAILURE;
+        }
+        memcpy(&z->buffer, "Goodbye!", sizeof("Goodbye!") - 1);
+    }
     {
         printf("[ ");
         for (usize i = 0; i < CAP_MEMORY_BUFFER; ++i) {
@@ -54,8 +96,8 @@ i32 main(void) {
         printf("]\n");
     }
     PRINT_STRING(x);
-    PRINT_STRING(y);
     PRINT_STRING(z);
+    printf("memory->len : %zu\n", memory->len);
     free(memory);
     return EXIT_SUCCESS;
 }
