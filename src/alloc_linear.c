@@ -66,16 +66,25 @@ static String* alloc_copy_string(Memory* memory, u32 len, const char* string) {
 ALLOC_EMPTY(alloc_empty_string, String, char)
 ALLOC_EMPTY(alloc_empty_array, Array, u32)
 
+#define PRINT_ARRAY(fmt, array, len)      \
+    {                                     \
+        printf("[ ");                     \
+        for (usize i = 0; i < len; ++i) { \
+            printf(fmt " ", array[i]);    \
+        }                                 \
+        printf("]\n");                    \
+    }
+
 i32 main(void) {
     Memory* memory = calloc(1, sizeof(Memory));
     String* x = alloc_copy_string(memory,
                                   sizeof("Hello, world!") - 1,
                                   "Hello, world!");
     Array*  y = alloc_empty_array(memory, 5);
+    if (!y) {
+        return EXIT_FAILURE;
+    }
     {
-        if (!y) {
-            return EXIT_FAILURE;
-        }
         u32 len = (u32)y->len;
         for (u32 i = 0; i < len; ++i) {
             y->buffer[i] = len - i;
@@ -88,14 +97,9 @@ i32 main(void) {
         }
         memcpy(&z->buffer, "Goodbye!", sizeof("Goodbye!") - 1);
     }
-    {
-        printf("[ ");
-        for (usize i = 0; i < CAP_MEMORY_BUFFER; ++i) {
-            printf("%hhu ", memory->buffer[i]);
-        }
-        printf("]\n");
-    }
+    PRINT_ARRAY("%hhu", memory->buffer, CAP_MEMORY_BUFFER);
     PRINT_STRING(x);
+    PRINT_ARRAY("%u", y->buffer, y->len);
     PRINT_STRING(z);
     printf("memory->len : %zu\n", memory->len);
     free(memory);
