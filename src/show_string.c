@@ -14,17 +14,19 @@ typedef struct {
 
 #define PRINTLN_STR(string) printf("%.*s\n", (i32)string.len, string.chars)
 
-static String get_string(const char* chars) {
-    return (String){
-        .len = strlen(chars),
-        .chars = chars,
-    };
-}
+#define STRING(literal)             \
+    ((String){                      \
+        .len = sizeof(literal) - 1, \
+        .chars = literal,           \
+    })
 
 i32 main(void) {
-    printf("sizeof(String) : %zu\n", sizeof(String));
-    const char* chars = "Hello, world!";
-    String      string = get_string(chars);
+    printf("sizeof(String) : %zu\n"
+           "sizeof(\"Hello, world!\") : %zu\n",
+           sizeof(String),
+           sizeof("Hello, world!"));
+    String string = STRING("Hello, world!");
+    PRINTLN_STR(string);
     string.len = 5;
     PRINTLN_STR(string);
     return EXIT_SUCCESS;
