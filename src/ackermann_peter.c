@@ -17,6 +17,8 @@ u32 ackermann(u32 m, u32 n) {
 }
 
 i32 main(void) {
-    printf("%u\n", ackermann(3, 9));
+    for (u32 i = 0; i < 12; ++i) {
+        printf("%u\n", ackermann(3, i));
+    }
     return EXIT_SUCCESS;
 }
