@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef uint8_t  u8;
 typedef uint32_t u32;
@@ -204,6 +205,8 @@ static void push_grid(Memory* memory, Index grid_index, Cube* cube) {
 }
 
 static void set_grid(Memory* memory) {
+    memset(memory->grid, 0, sizeof(memory->grid));
+    memory->len_lists = 0;
     for (u8 i = 0; i < COUNT_CUBES; ++i) {
         Range range = get_range(memory, CUBES[i]);
         for (u8 x = range.lower.x; x <= range.upper.x; ++x) {
