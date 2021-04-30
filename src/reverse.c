@@ -9,7 +9,7 @@ static void reverse(u8* array, usize size) {
     usize m = size >> 1;
     for (usize i = 0; i < m; ++i) {
         usize j = size - i - 1;
-        u8 t = array[i];
+        u8    t = array[i];
         array[i] = array[j];
         array[j] = t;
     }
