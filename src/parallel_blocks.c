@@ -13,19 +13,16 @@ typedef pthread_t            Thread;
 #define BUFFER_CAP 512u
 #define BLOCKS_CAP 512u
 
-/* NOTE: It would be nice if all of the `static const` variables could be
- * determined at _compile-time_!
- */
 #define BUFFER_WIDTH  17u
 #define BUFFER_HEIGHT 17u
-static const u16 BUFFER_LEN = BUFFER_WIDTH * BUFFER_HEIGHT;
+#define BUFFER_LEN    (BUFFER_WIDTH * BUFFER_HEIGHT)
 
-#define N 4u
-static const u16 BLOCK_WIDTH = BUFFER_WIDTH / N;
-static const u16 BLOCK_HEIGHT = BUFFER_HEIGHT / N;
-static const u16 X_BLOCKS = (BUFFER_WIDTH + BLOCK_WIDTH - 1u) / BLOCK_WIDTH;
-static const u16 Y_BLOCKS = (BUFFER_HEIGHT + BLOCK_HEIGHT - 1u) / BLOCK_HEIGHT;
-static const u16 BLOCKS_LEN = X_BLOCKS * Y_BLOCKS;
+#define N            4u
+#define BLOCK_WIDTH  (BUFFER_WIDTH / N)
+#define BLOCK_HEIGHT (BUFFER_HEIGHT / N)
+#define X_BLOCKS     ((BUFFER_WIDTH + BLOCK_WIDTH - 1u) / BLOCK_WIDTH)
+#define Y_BLOCKS     ((BUFFER_HEIGHT + BLOCK_HEIGHT - 1u) / BLOCK_HEIGHT)
+#define BLOCKS_LEN   (X_BLOCKS * Y_BLOCKS)
 
 #define THREAD_CAP 3u
 
@@ -103,6 +100,7 @@ int main(void) {
     Payload payload;
     payload.buffer = memory->buffer;
     payload.blocks = memory->blocks;
+    payload.id = 0;
     {
         u16 index = 0;
         for (u16 y = 0; y < Y_BLOCKS; ++y) {
