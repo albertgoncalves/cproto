@@ -9,7 +9,7 @@ for x in bin build out; do
 done
 
 # NOTE: See `https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html`.
-export FLAGS=(
+export flags=(
     "-fshort-enums"
     "-funsigned-char"
     "-march=native"
@@ -35,8 +35,6 @@ export FLAGS=(
     "-Wmissing-include-dirs"
     "-Wmissing-prototypes"
     "-Wnested-externs"
-    "-Wno-unused-function"
-    "-Wno-unused-parameter"
     "-Wnull-dereference"
     "-Wpacked"
     "-Wpedantic"
@@ -52,7 +50,7 @@ export FLAGS=(
     "-Wunused-macros"
     "-Wwrite-strings"
 )
-export FLAGS_SANITIZE=(
+export flags_sanitize=(
     "-fsanitize=address"
     "-fsanitize-address-use-after-scope"
     "-fsanitize=alignment"
@@ -79,15 +77,16 @@ export FLAGS_SANITIZE=(
     "-fsanitize=unreachable"
     "-fsanitize=vla-bound"
 )
+libs=(
+    "-lm"
+    "-lX11"
+    "-pthread"
+)
 
 runc () {
     handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
     clang-format -i "$1" || return
-    cppcheck \
-        --enable=all \
-        --suppress=missingIncludeSystem \
-        "$1" \
-        || return
+    cppcheck --enable=all --suppress=missingIncludeSystem "$1" || return
     pwd_=$PWD
     cp "$1" "$WD/build/$handle.c"
     (
@@ -95,20 +94,15 @@ runc () {
         gcc \
             -g \
             -o "$WD/bin/${handle}_valgrind" \
-            "${FLAGS[@]}" \
-            -lm \
-            -lX11 \
-            -pthread \
+            "${flags[@]}" \
+            "${libs[@]}" \
             "$handle.c" \
             || return
         gcc \
-            -g \
             -o "$WD/bin/${handle}_sanitize" \
-            "${FLAGS[@]}" \
-            "${FLAGS_SANITIZE[@]}" \
-            -lm \
-            -lX11 \
-            -pthread \
+            "${flags[@]}" \
+            "${flags_sanitize[@]}" \
+            "${libs[@]}" \
             "$handle.c" \
             || return
         cd "$pwd_" || return
