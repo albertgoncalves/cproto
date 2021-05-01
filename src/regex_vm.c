@@ -53,7 +53,7 @@ typedef enum {
 } TokenTag;
 
 typedef struct {
-    char     as_char;
+    char     char_;
     TokenTag tag;
 } Token;
 
@@ -161,7 +161,7 @@ static void set_tokens(Memory* memory, String string) {
                 token->tag = TOKEN_CONCAT;
             }
             Token* token = alloc_token(memory);
-            token->as_char = string.chars[i];
+            token->char_ = string.chars[i];
             token->tag = TOKEN_CHAR;
         }
         }
@@ -171,7 +171,7 @@ static void set_tokens(Memory* memory, String string) {
 static void show_token(Token token) {
     switch (token.tag) {
     case TOKEN_CHAR: {
-        printf("'%c'\n", token.as_char);
+        printf("'%c'\n", token.char_);
         break;
     }
     case TOKEN_CONCAT: {
@@ -239,7 +239,7 @@ static Expr* parse_expr(Memory* memory, u8 prev_binding) {
         switch (token.tag) {
         case TOKEN_CHAR: {
             expr->tag = EXPR_CHAR;
-            expr->op.as_char = token.as_char;
+            expr->op.as_char = token.char_;
             break;
         }
         case TOKEN_CONCAT:
