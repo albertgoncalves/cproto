@@ -347,10 +347,10 @@ void show_expr(Expr* expr, u8 n) {
  *        (.)         (.)
  *       /   \       /   \
  *      f    (*)    b    (.)
- *             \        /   \
- *              o      a    (?)
- *                            \
- *                             r
+ *              \       /   \
+ *               o     a    (?)
+ *                             \
+ *                              r
  */
 
 i32 main(void) {
