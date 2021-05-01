@@ -318,23 +318,23 @@ void show_expr(Expr* expr, u8 n) {
         break;
     }
     case EXPR_CONCAT: {
-        SHOW_BOTH(expr, ".", n);
+        SHOW_BOTH(expr, " .", n);
         break;
     }
     case EXPR_OR: {
-        SHOW_BOTH(expr, "|", n);
+        SHOW_BOTH(expr, " |", n);
         break;
     }
     case EXPR_ZERO_OR_ONE: {
-        SHOW_ONE(expr, "?", n);
+        SHOW_ONE(expr, " ?", n);
         break;
     }
     case EXPR_ZERO_OR_MANY: {
-        SHOW_ONE(expr, "*", n);
+        SHOW_ONE(expr, " *", n);
         break;
     }
     case EXPR_ONE_OR_MANY: {
-        SHOW_ONE(expr, "+", n);
+        SHOW_ONE(expr, " +", n);
         break;
     }
     }
