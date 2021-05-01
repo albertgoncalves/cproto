@@ -204,11 +204,6 @@ static Token pop_token(Memory* memory) {
     return memory->tokens[memory->cur_tokens++];
 }
 
-static Token peek_token(Memory* memory) {
-    EXIT_IF(TOKENS_EMPTY(memory));
-    return memory->tokens[memory->cur_tokens];
-}
-
 #define SET_INFIX(memory, prev_binding, tag_, binding, expr_) \
     {                                                         \
         Expr* infix = alloc_expr(memory);                     \
@@ -256,37 +251,32 @@ static Expr* parse_expr(Memory* memory, u8 prev_binding) {
         }
         }
     }
-    for (;;) {
-        if (TOKENS_EMPTY(memory)) {
+    while (!TOKENS_EMPTY(memory)) {
+        Token token = memory->tokens[memory->cur_tokens];
+        switch (token.tag) {
+        case TOKEN_CONCAT: {
+            SET_INFIX(memory, prev_binding, EXPR_CONCAT, 2, expr);
             break;
         }
-        {
-            Token token = peek_token(memory);
-            switch (token.tag) {
-            case TOKEN_CONCAT: {
-                SET_INFIX(memory, prev_binding, EXPR_CONCAT, 2, expr);
-                break;
-            }
-            case TOKEN_OR: {
-                SET_INFIX(memory, prev_binding, EXPR_OR, 1, expr);
-                break;
-            }
-            case TOKEN_ZERO_OR_ONE: {
-                SET_POSTFIX(memory, prev_binding, EXPR_ZERO_OR_ONE, 3, expr);
-                break;
-            }
-            case TOKEN_ZERO_OR_MANY: {
-                SET_POSTFIX(memory, prev_binding, EXPR_ZERO_OR_MANY, 3, expr);
-                break;
-            }
-            case TOKEN_ONE_OR_MANY: {
-                SET_POSTFIX(memory, prev_binding, EXPR_ONE_OR_MANY, 3, expr);
-                break;
-            }
-            case TOKEN_CHAR: {
-                ERROR();
-            }
-            }
+        case TOKEN_OR: {
+            SET_INFIX(memory, prev_binding, EXPR_OR, 1, expr);
+            break;
+        }
+        case TOKEN_ZERO_OR_ONE: {
+            SET_POSTFIX(memory, prev_binding, EXPR_ZERO_OR_ONE, 3, expr);
+            break;
+        }
+        case TOKEN_ZERO_OR_MANY: {
+            SET_POSTFIX(memory, prev_binding, EXPR_ZERO_OR_MANY, 3, expr);
+            break;
+        }
+        case TOKEN_ONE_OR_MANY: {
+            SET_POSTFIX(memory, prev_binding, EXPR_ONE_OR_MANY, 3, expr);
+            break;
+        }
+        case TOKEN_CHAR: {
+            ERROR();
+        }
         }
     }
     return expr;
