@@ -10,6 +10,8 @@
 
 #define CAP_TOKENS 32
 #define CAP_EXPRS  32
+// #define CAP_INSTS  32
+// #define CAP_LABELS 32
 
 typedef uint8_t u8;
 typedef size_t  usize;
@@ -82,47 +84,40 @@ struct Expr {
     ExprTag tag;
 };
 
+// typedef enum {
+//     INST_MATCH = 0,
+//     INST_CHAR,
+//     INST_JMP,
+//     INST_SPLIT,
+//     COUNT_INST_TAG,
+// } InstTag;
+//
+// typedef union {
+//     u8   as_label[2];
+//     char as_char;
+// } InstOp;
+//
+// typedef struct {
+//     InstOp  op;
+//     InstTag tag;
+// } Inst;
+//
+// typedef struct {
+//     u8 program;
+//     u8 string;
+// } Index;
+
 typedef struct {
     Token tokens[CAP_TOKENS];
     u8    len_tokens;
     u8    cur_tokens;
     Expr  exprs[CAP_EXPRS];
     u8    len_exprs;
+    // u8    labels[CAP_LABELS];
+    u8 len_labels;
+    // Inst  insts[CAP_INSTS];
+    // Index index;
 } Memory;
-
-/*
-#define CAP_LABELS 32
-#define CAP_INSTS  32
-
-typedef enum {
-    INST_MATCH = 0,
-    INST_CHAR,
-    INST_JMP,
-    INST_SPLIT,
-    COUNT_INST_TAG,
-} InstTag;
-
-typedef union {
-    u8   as_label[2];
-    char as_char;
-} InstOp;
-
-typedef struct {
-    InstOp  op;
-    InstTag tag;
-} Inst;
-
-typedef struct {
-    u8 program;
-    u8 string;
-} Index;
-
-typedef struct {
-    u8    labels[CAP_LABELS];
-    Inst  insts[CAP_INSTS];
-    Index index;
-} Memory;
-*/
 
 static Token* alloc_token(Memory* memory) {
     EXIT_IF(CAP_TOKENS <= memory->len_tokens);
@@ -357,6 +352,66 @@ void show_expr(Expr* expr, u8 n) {
     }
 }
 
+#define LABEL_FMT "\"%hhu\""
+#define SPLIT_FMT "\tsplit " LABEL_FMT ", " LABEL_FMT "\n" LABEL_FMT ":\n"
+
+void show_compile(Memory*, Expr*);
+void show_compile(Memory* memory, Expr* expr) {
+    if (!expr) {
+        return;
+    }
+    switch (expr->tag) {
+    case EXPR_CHAR: {
+        printf("\tchar '%c'\n", expr->op.as_char);
+        break;
+    }
+    case EXPR_CONCAT: {
+        show_compile(memory, expr->op.as_expr[0]);
+        show_compile(memory, expr->op.as_expr[1]);
+        break;
+    }
+    case EXPR_OR: {
+        u8 label_0 = memory->len_labels++;
+        u8 label_1 = memory->len_labels++;
+        u8 label_2 = memory->len_labels++;
+        printf(SPLIT_FMT, label_0, label_1, label_0);
+        show_compile(memory, expr->op.as_expr[0]);
+        printf("\tjump " LABEL_FMT "\n" LABEL_FMT ":\n", label_2, label_1);
+        show_compile(memory, expr->op.as_expr[1]);
+        printf(LABEL_FMT ":\n", label_2);
+        break;
+    }
+    case EXPR_ZERO_OR_ONE: {
+        u8 label_0 = memory->len_labels++;
+        u8 label_1 = memory->len_labels++;
+        printf(SPLIT_FMT, label_0, label_1, label_0);
+        show_compile(memory, expr->op.as_expr[0]);
+        printf(LABEL_FMT ":\n", label_1);
+        break;
+    }
+    case EXPR_ZERO_OR_MANY: {
+        u8 label_0 = memory->len_labels++;
+        u8 label_1 = memory->len_labels++;
+        u8 label_2 = memory->len_labels++;
+        printf(LABEL_FMT ":\n" SPLIT_FMT, label_0, label_1, label_2, label_1);
+        show_compile(memory, expr->op.as_expr[0]);
+        printf("\tjump " LABEL_FMT "\n" LABEL_FMT "\n", label_0, label_2);
+        break;
+    }
+    case EXPR_ONE_OR_MANY: {
+        u8 label_0 = memory->len_labels++;
+        u8 label_1 = memory->len_labels++;
+        printf(LABEL_FMT ":\n", label_0);
+        show_compile(memory, expr->op.as_expr[0]);
+        printf(SPLIT_FMT, label_0, label_1, label_1);
+        break;
+    }
+    default: {
+        ERROR();
+    }
+    }
+}
+
 /*           "fo*|bar?"
  *
  *           __ (|) __
@@ -389,7 +444,11 @@ i32 main(void) {
     for (u8 i = 0; i < memory->len_tokens; ++i) {
         show_token(memory->tokens[i]);
     }
-    show_expr(parse_expr(memory, 0), 0);
+    printf("\n");
+    Expr* expr = parse_expr(memory, 0);
+    show_expr(expr, 0);
+    printf("\n");
+    show_compile(memory, expr);
     printf("\nDone!\n");
     free(memory);
     return EXIT_SUCCESS;
