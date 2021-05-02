@@ -48,6 +48,11 @@ typedef struct {
         exit(EXIT_FAILURE);                                          \
     }
 
+typedef struct {
+    u8 open_;
+    u8 close_;
+} Parens;
+
 typedef enum {
     TOKEN_CHAR = 0,
     TOKEN_CONCAT,
@@ -55,6 +60,8 @@ typedef enum {
     TOKEN_ZERO_OR_ONE,
     TOKEN_ZERO_OR_MANY,
     TOKEN_ONE_OR_MANY,
+    TOKEN_LPAREN,
+    TOKEN_RPAREN,
     COUNT_TOKEN_TAG,
 } TokenTag;
 
@@ -129,8 +136,21 @@ static Expr* alloc_expr(Memory* memory) {
     return &memory->exprs[memory->len_exprs++];
 }
 
+#define SET_CONCAT(memory)                                              \
+    if ((memory->len_tokens != 0) &&                                    \
+        (memory->tokens[memory->len_tokens - 1].tag != TOKEN_OR) &&     \
+        (memory->tokens[memory->len_tokens - 1].tag != TOKEN_CONCAT) && \
+        (memory->tokens[memory->len_tokens - 1].tag != TOKEN_LPAREN))   \
+    {                                                                   \
+        Token* token = alloc_token(memory);                             \
+        token->tag = TOKEN_CONCAT;                                      \
+    }
+
+STATIC_ASSERT(COUNT_TOKEN_TAG == 8, "COUNT_TOKEN_TAG != 8");
 static void set_tokens(Memory* memory, String string) {
+    Parens parens = {0};
     for (u8 i = 0; i < string.len; ++i) {
+        EXIT_IF(parens.open_ < parens.close_);
         switch (string.chars[i]) {
         case '|': {
             Token* token = alloc_token(memory);
@@ -152,21 +172,28 @@ static void set_tokens(Memory* memory, String string) {
             token->tag = TOKEN_ONE_OR_MANY;
             break;
         }
+        case '(': {
+            ++parens.open_;
+            SET_CONCAT(memory);
+            Token* token = alloc_token(memory);
+            token->tag = TOKEN_LPAREN;
+            break;
+        }
+        case ')': {
+            ++parens.close_;
+            Token* token = alloc_token(memory);
+            token->tag = TOKEN_RPAREN;
+            break;
+        }
         default: {
-            if ((memory->len_tokens != 0) &&
-                (memory->tokens[memory->len_tokens - 1].tag != TOKEN_OR) &&
-                (memory->tokens[memory->len_tokens - 1].tag != TOKEN_CONCAT))
-            {
-                STATIC_ASSERT(COUNT_TOKEN_TAG == 6, "COUNT_TOKEN_TAG != 6");
-                Token* token = alloc_token(memory);
-                token->tag = TOKEN_CONCAT;
-            }
+            SET_CONCAT(memory);
             Token* token = alloc_token(memory);
             token->char_ = string.chars[i];
             token->tag = TOKEN_CHAR;
         }
         }
     }
+    EXIT_IF(parens.open_ != parens.close_);
 }
 
 static void show_token(Token token) {
@@ -193,6 +220,14 @@ static void show_token(Token token) {
     }
     case TOKEN_ONE_OR_MANY: {
         printf(" +\n");
+        break;
+    }
+    case TOKEN_LPAREN: {
+        printf(" (\n");
+        break;
+    }
+    case TOKEN_RPAREN: {
+        printf(" )\n");
         break;
     }
     case COUNT_TOKEN_TAG:
@@ -234,6 +269,12 @@ static Token pop_token(Memory* memory) {
         expr_ = postfix;                                        \
     }
 
+#define BINDING_INIT    0
+#define BINDING_PAREN   BINDING_INIT
+#define BINDING_OR      1
+#define BINDING_CONCAT  2
+#define BINDING_POSTFIX 3
+
 static Expr* parse_expr(Memory* memory, u8 prev_binding) {
     if (TOKENS_EMPTY(memory)) {
         return NULL;
@@ -247,11 +288,16 @@ static Expr* parse_expr(Memory* memory, u8 prev_binding) {
             expr->op.as_char = token.char_;
             break;
         }
+        case TOKEN_LPAREN: {
+            expr = parse_expr(memory, BINDING_PAREN);
+            break;
+        }
         case TOKEN_CONCAT:
         case TOKEN_OR:
         case TOKEN_ZERO_OR_ONE:
         case TOKEN_ZERO_OR_MANY:
         case TOKEN_ONE_OR_MANY:
+        case TOKEN_RPAREN:
         case COUNT_TOKEN_TAG:
         default: {
             ERROR();
@@ -262,24 +308,48 @@ static Expr* parse_expr(Memory* memory, u8 prev_binding) {
         Token token = memory->tokens[memory->cur_tokens];
         switch (token.tag) {
         case TOKEN_CONCAT: {
-            SET_INFIX(memory, prev_binding, EXPR_CONCAT, 2, expr);
+            SET_INFIX(memory, prev_binding, EXPR_CONCAT, BINDING_CONCAT, expr);
             break;
         }
         case TOKEN_OR: {
-            SET_INFIX(memory, prev_binding, EXPR_OR, 1, expr);
+            SET_INFIX(memory, prev_binding, EXPR_OR, BINDING_OR, expr);
             break;
         }
         case TOKEN_ZERO_OR_ONE: {
-            SET_POSTFIX(memory, prev_binding, EXPR_ZERO_OR_ONE, 3, expr);
+            SET_POSTFIX(memory,
+                        prev_binding,
+                        EXPR_ZERO_OR_ONE,
+                        BINDING_POSTFIX,
+                        expr);
             break;
         }
         case TOKEN_ZERO_OR_MANY: {
-            SET_POSTFIX(memory, prev_binding, EXPR_ZERO_OR_MANY, 3, expr);
+            SET_POSTFIX(memory,
+                        prev_binding,
+                        EXPR_ZERO_OR_MANY,
+                        BINDING_POSTFIX,
+                        expr);
             break;
         }
         case TOKEN_ONE_OR_MANY: {
-            SET_POSTFIX(memory, prev_binding, EXPR_ONE_OR_MANY, 3, expr);
+            SET_POSTFIX(memory,
+                        prev_binding,
+                        EXPR_ONE_OR_MANY,
+                        BINDING_POSTFIX,
+                        expr);
             break;
+        }
+        case TOKEN_LPAREN: {
+            pop_token(memory);
+            expr = parse_expr(memory, BINDING_PAREN);
+            break;
+        }
+        case TOKEN_RPAREN: {
+            if (BINDING_PAREN < prev_binding) {
+                return expr;
+            }
+            pop_token(memory);
+            return expr;
         }
         case TOKEN_CHAR:
         case COUNT_TOKEN_TAG:
@@ -439,13 +509,13 @@ i32 main(void) {
            sizeof(Expr),
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
-    String  regex = TO_STRING("fo*|bar?|j+");
+    String  regex = TO_STRING("fo*|(ba(r|z?))+|jazz");
     set_tokens(memory, regex);
     for (u8 i = 0; i < memory->len_tokens; ++i) {
         show_token(memory->tokens[i]);
     }
     printf("\n");
-    Expr* expr = parse_expr(memory, 0);
+    Expr* expr = parse_expr(memory, BINDING_INIT);
     show_expr(expr, 0);
     printf("\n");
     show_compile(memory, expr);
