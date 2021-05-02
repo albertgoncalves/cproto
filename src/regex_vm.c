@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,8 @@ typedef uint8_t u8;
 typedef size_t  usize;
 
 typedef int32_t i32;
+
+#define STATIC_ASSERT _Static_assert
 
 typedef struct {
     const char* chars;
@@ -50,6 +53,7 @@ typedef enum {
     TOKEN_ZERO_OR_ONE,
     TOKEN_ZERO_OR_MANY,
     TOKEN_ONE_OR_MANY,
+    COUNT_TOKEN_TAG,
 } TokenTag;
 
 typedef struct {
@@ -155,8 +159,10 @@ static void set_tokens(Memory* memory, String string) {
         }
         default: {
             if ((memory->len_tokens != 0) &&
-                (memory->tokens[memory->len_tokens - 1].tag == TOKEN_CHAR))
+                (memory->tokens[memory->len_tokens - 1].tag != TOKEN_OR) &&
+                (memory->tokens[memory->len_tokens - 1].tag != TOKEN_CONCAT))
             {
+                STATIC_ASSERT(COUNT_TOKEN_TAG == 6, "COUNT_TOKEN_TAG != 6");
                 Token* token = alloc_token(memory);
                 token->tag = TOKEN_CONCAT;
             }
@@ -193,6 +199,10 @@ static void show_token(Token token) {
     case TOKEN_ONE_OR_MANY: {
         printf(" +\n");
         break;
+    }
+    case COUNT_TOKEN_TAG:
+    default: {
+        ERROR();
     }
     }
 }
@@ -246,7 +256,9 @@ static Expr* parse_expr(Memory* memory, u8 prev_binding) {
         case TOKEN_OR:
         case TOKEN_ZERO_OR_ONE:
         case TOKEN_ZERO_OR_MANY:
-        case TOKEN_ONE_OR_MANY: {
+        case TOKEN_ONE_OR_MANY:
+        case COUNT_TOKEN_TAG:
+        default: {
             ERROR();
         }
         }
@@ -274,7 +286,9 @@ static Expr* parse_expr(Memory* memory, u8 prev_binding) {
             SET_POSTFIX(memory, prev_binding, EXPR_ONE_OR_MANY, 3, expr);
             break;
         }
-        case TOKEN_CHAR: {
+        case TOKEN_CHAR:
+        case COUNT_TOKEN_TAG:
+        default: {
             ERROR();
         }
         }
@@ -336,6 +350,9 @@ void show_expr(Expr* expr, u8 n) {
     case EXPR_ONE_OR_MANY: {
         SHOW_ONE(expr, " +", n);
         break;
+    }
+    default: {
+        ERROR();
     }
     }
 }
