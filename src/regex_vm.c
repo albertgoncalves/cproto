@@ -8,10 +8,11 @@
 // NOTE: See `https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04_08`.
 // NOTE: See `https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html`.
 
-#define CAP_TOKENS 32
-#define CAP_EXPRS  32
-// #define CAP_INSTS  32
-// #define CAP_LABELS 32
+#define CAP_TOKENS    64
+#define CAP_EXPRS     64
+#define CAP_PRE_INSTS 64
+#define CAP_INSTS     64
+#define CAP_LABELS    64
 
 typedef uint8_t u8;
 typedef size_t  usize;
@@ -91,39 +92,60 @@ struct Expr {
     ExprTag tag;
 };
 
-// typedef enum {
-//     INST_MATCH = 0,
-//     INST_CHAR,
-//     INST_JMP,
-//     INST_SPLIT,
-//     COUNT_INST_TAG,
-// } InstTag;
-//
-// typedef union {
-//     u8   as_label[2];
-//     char as_char;
-// } InstOp;
-//
-// typedef struct {
-//     InstOp  op;
-//     InstTag tag;
-// } Inst;
-//
-// typedef struct {
-//     u8 program;
-//     u8 string;
-// } Index;
+typedef enum {
+    PRE_INST_LABEL = 0,
+    PRE_INST_MATCH,
+    PRE_INST_CHAR,
+    PRE_INST_JUMP,
+    PRE_INST_SPLIT,
+    COUNT_PRE_INST_TAG,
+} PreInstTag;
+
+typedef union {
+    u8   as_label[2];
+    u8   as_line[2];
+    char as_char;
+} PreInstOp;
 
 typedef struct {
-    Token tokens[CAP_TOKENS];
-    u8    len_tokens;
-    u8    cur_tokens;
-    Expr  exprs[CAP_EXPRS];
-    u8    len_exprs;
-    // u8    labels[CAP_LABELS];
-    u8 len_labels;
-    // Inst  insts[CAP_INSTS];
-    // Index index;
+    PreInstOp  op;
+    PreInstTag tag;
+} PreInst;
+
+typedef enum {
+    INST_MATCH = 0,
+    INST_CHAR,
+    INST_JUMP,
+    INST_SPLIT,
+} InstTag;
+
+typedef union {
+    u8   as_line[2];
+    char as_char;
+} InstOp;
+
+typedef struct {
+    InstOp  op;
+    InstTag tag;
+} Inst;
+
+typedef struct {
+    u8 program;
+    u8 string;
+} Index;
+
+typedef struct {
+    Token   tokens[CAP_TOKENS];
+    u8      len_tokens;
+    u8      cur_tokens;
+    Expr    exprs[CAP_EXPRS];
+    u8      len_exprs;
+    PreInst pre_insts[CAP_PRE_INSTS];
+    u8      len_pre_insts;
+    u8      labels[CAP_LABELS];
+    u8      len_labels;
+    Inst    insts[CAP_INSTS];
+    u8      len_insts;
 } Memory;
 
 static Token* alloc_token(Memory* memory) {
@@ -134,6 +156,16 @@ static Token* alloc_token(Memory* memory) {
 static Expr* alloc_expr(Memory* memory) {
     EXIT_IF(CAP_EXPRS <= memory->len_exprs);
     return &memory->exprs[memory->len_exprs++];
+}
+
+static PreInst* alloc_pre_inst(Memory* memory) {
+    EXIT_IF(CAP_PRE_INSTS <= memory->len_pre_insts);
+    return &memory->pre_insts[memory->len_pre_insts++];
+}
+
+static Inst* alloc_inst(Memory* memory) {
+    EXIT_IF(CAP_INSTS <= memory->len_insts);
+    return &memory->insts[memory->len_insts++];
 }
 
 #define SET_CONCAT(memory)                                              \
@@ -422,60 +454,173 @@ void show_expr(Expr* expr, u8 n) {
     }
 }
 
-#define LABEL_FMT "\"%hhu\""
-#define SPLIT_FMT "\tsplit " LABEL_FMT ", " LABEL_FMT "\n" LABEL_FMT ":\n"
+#define EMIT_PRE_INST_LABEL(tag_, label_)           \
+    {                                               \
+        PreInst* pre_inst = alloc_pre_inst(memory); \
+        pre_inst->tag = tag_;                       \
+        pre_inst->op.as_label[0] = label_;          \
+    }
 
-void show_compile(Memory*, Expr*);
-void show_compile(Memory* memory, Expr* expr) {
+#define EMIT_SPLIT(label_0, label_1)                \
+    {                                               \
+        PreInst* pre_inst = alloc_pre_inst(memory); \
+        pre_inst->tag = PRE_INST_SPLIT;             \
+        pre_inst->op.as_label[0] = label_0;         \
+        pre_inst->op.as_label[1] = label_1;         \
+    }
+
+void emit(Memory*, Expr*);
+void emit(Memory* memory, Expr* expr) {
     if (!expr) {
         return;
     }
     switch (expr->tag) {
     case EXPR_CHAR: {
-        printf("\tchar '%c'\n", expr->op.as_char);
+        PreInst* pre_inst = alloc_pre_inst(memory);
+        pre_inst->tag = PRE_INST_CHAR;
+        pre_inst->op.as_char = expr->op.as_char;
         break;
     }
     case EXPR_CONCAT: {
-        show_compile(memory, expr->op.as_expr[0]);
-        show_compile(memory, expr->op.as_expr[1]);
+        emit(memory, expr->op.as_expr[0]);
+        emit(memory, expr->op.as_expr[1]);
         break;
     }
     case EXPR_OR: {
         u8 label_0 = memory->len_labels++;
         u8 label_1 = memory->len_labels++;
         u8 label_2 = memory->len_labels++;
-        printf(SPLIT_FMT, label_0, label_1, label_0);
-        show_compile(memory, expr->op.as_expr[0]);
-        printf("\tjump " LABEL_FMT "\n" LABEL_FMT ":\n", label_2, label_1);
-        show_compile(memory, expr->op.as_expr[1]);
-        printf(LABEL_FMT ":\n", label_2);
+        EMIT_SPLIT(label_0, label_1);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_0);
+        emit(memory, expr->op.as_expr[0]);
+        EMIT_PRE_INST_LABEL(PRE_INST_JUMP, label_2);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_1);
+        emit(memory, expr->op.as_expr[1]);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_2);
         break;
     }
     case EXPR_ZERO_OR_ONE: {
         u8 label_0 = memory->len_labels++;
         u8 label_1 = memory->len_labels++;
-        printf(SPLIT_FMT, label_0, label_1, label_0);
-        show_compile(memory, expr->op.as_expr[0]);
-        printf(LABEL_FMT ":\n", label_1);
+        EMIT_SPLIT(label_0, label_1);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_0);
+        emit(memory, expr->op.as_expr[0]);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_1);
         break;
     }
     case EXPR_ZERO_OR_MANY: {
         u8 label_0 = memory->len_labels++;
         u8 label_1 = memory->len_labels++;
         u8 label_2 = memory->len_labels++;
-        printf(LABEL_FMT ":\n" SPLIT_FMT, label_0, label_1, label_2, label_1);
-        show_compile(memory, expr->op.as_expr[0]);
-        printf("\tjump " LABEL_FMT "\n" LABEL_FMT "\n", label_0, label_2);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_0);
+        EMIT_SPLIT(label_1, label_2);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_1);
+        emit(memory, expr->op.as_expr[0]);
+        EMIT_PRE_INST_LABEL(PRE_INST_JUMP, label_0);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_2);
         break;
     }
     case EXPR_ONE_OR_MANY: {
         u8 label_0 = memory->len_labels++;
         u8 label_1 = memory->len_labels++;
-        printf(LABEL_FMT ":\n", label_0);
-        show_compile(memory, expr->op.as_expr[0]);
-        printf(SPLIT_FMT, label_0, label_1, label_1);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_0);
+        emit(memory, expr->op.as_expr[0]);
+        EMIT_SPLIT(label_0, label_1);
+        EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_1);
         break;
     }
+    default: {
+        ERROR();
+    }
+    }
+}
+
+static void resolve_labels(Memory* memory) {
+    EXIT_IF(CAP_LABELS <= memory->len_labels);
+    u8 line = 0;
+    for (u8 i = 0; i < memory->len_pre_insts; ++i) {
+        switch (memory->pre_insts[i].tag) {
+        case PRE_INST_LABEL: {
+            memory->labels[memory->pre_insts[i].op.as_label[0]] = line;
+            break;
+        }
+        case PRE_INST_MATCH:
+        case PRE_INST_CHAR:
+        case PRE_INST_JUMP:
+        case PRE_INST_SPLIT: {
+            ++line;
+            break;
+        }
+        case COUNT_PRE_INST_TAG:
+        default: {
+            ERROR();
+        }
+        }
+    }
+    for (u8 i = 0; i < memory->len_pre_insts; ++i) {
+        switch (memory->pre_insts[i].tag) {
+        case PRE_INST_LABEL: {
+            break;
+        }
+        case PRE_INST_JUMP: {
+            Inst* inst = alloc_inst(memory);
+            inst->tag = INST_JUMP;
+            inst->op.as_line[0] =
+                memory->labels[memory->pre_insts[i].op.as_label[0]];
+            EXIT_IF(line <= inst->op.as_line[0]);
+            break;
+        }
+        case PRE_INST_SPLIT: {
+            Inst* inst = alloc_inst(memory);
+            inst->tag = INST_SPLIT;
+            inst->op.as_line[0] =
+                memory->labels[memory->pre_insts[i].op.as_label[0]];
+            EXIT_IF(line <= inst->op.as_line[0]);
+            inst->op.as_line[1] =
+                memory->labels[memory->pre_insts[i].op.as_label[1]];
+            EXIT_IF(line <= inst->op.as_line[1]);
+            break;
+        }
+        case PRE_INST_MATCH: {
+            Inst* inst = alloc_inst(memory);
+            inst->tag = INST_MATCH;
+            break;
+        }
+        case PRE_INST_CHAR: {
+            Inst* inst = alloc_inst(memory);
+            inst->tag = INST_CHAR;
+            inst->op.as_char = memory->pre_insts[i].op.as_char;
+            break;
+        }
+        case COUNT_PRE_INST_TAG:
+        default: {
+            ERROR();
+        }
+        }
+    }
+}
+
+#define LINE_FMT "%hhu"
+
+static void show_inst(Inst inst) {
+    switch (inst.tag) {
+    case INST_MATCH: {
+        printf("\tmatch\n");
+        break;
+    }
+    case INST_CHAR: {
+        printf("\tchar\t'%c'\n", inst.op.as_char);
+        break;
+    }
+    case INST_JUMP: {
+        printf("\tjump\t" LINE_FMT "\n", inst.op.as_line[0]);
+        break;
+    }
+    case INST_SPLIT:
+        printf("\tsplit\t" LINE_FMT ",\t" LINE_FMT "\n",
+               inst.op.as_line[0],
+               inst.op.as_line[1]);
+        break;
     default: {
         ERROR();
     }
@@ -496,30 +641,62 @@ void show_compile(Memory* memory, Expr* expr) {
  */
 
 i32 main(void) {
-    printf("sizeof(TokenTag) : %zu\n"
-           "sizeof(Token)    : %zu\n"
-           "sizeof(ExprTag)  : %zu\n"
-           "sizeof(ExprOp)   : %zu\n"
-           "sizeof(Expr)     : %zu\n"
-           "sizeof(Memory)   : %zu\n\n",
+    printf("\n"
+           "sizeof(TokenTag)   : %zu\n"
+           "sizeof(Token)      : %zu\n"
+           "sizeof(ExprTag)    : %zu\n"
+           "sizeof(ExprOp)     : %zu\n"
+           "sizeof(Expr)       : %zu\n"
+           "sizeof(PreInstTag) : %zu\n"
+           "sizeof(PreInstOp)  : %zu\n"
+           "sizeof(PreInst)    : %zu\n"
+           "sizeof(InstTag)    : %zu\n"
+           "sizeof(InstOp)     : %zu\n"
+           "sizeof(Inst)       : %zu\n"
+           "sizeof(Index)      : %zu\n"
+           "sizeof(Memory)     : %zu\n"
+           "\n",
            sizeof(TokenTag),
            sizeof(Token),
            sizeof(ExprTag),
            sizeof(ExprOp),
            sizeof(Expr),
+           sizeof(PreInstTag),
+           sizeof(PreInstOp),
+           sizeof(PreInst),
+           sizeof(InstTag),
+           sizeof(InstOp),
+           sizeof(Inst),
+           sizeof(Index),
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
-    String  regex = TO_STRING("fo*|(ba(r|z?))+|jazz");
-    set_tokens(memory, regex);
-    for (u8 i = 0; i < memory->len_tokens; ++i) {
-        show_token(memory->tokens[i]);
+    Expr*   expr;
+    {
+        String regex = TO_STRING("fo*|(ba(r|z?))+|jazz");
+        set_tokens(memory, regex);
+        expr = parse_expr(memory, BINDING_INIT);
+        {
+            memory->len_pre_insts = 0;
+            memory->len_labels = 0;
+            emit(memory, expr);
+            PreInst* pre_inst = alloc_pre_inst(memory);
+            pre_inst->tag = PRE_INST_MATCH;
+        }
+        resolve_labels(memory);
     }
-    printf("\n");
-    Expr* expr = parse_expr(memory, BINDING_INIT);
-    show_expr(expr, 0);
-    printf("\n");
-    show_compile(memory, expr);
-    printf("\nDone!\n");
+    {
+        for (u8 i = 0; i < memory->len_tokens; ++i) {
+            show_token(memory->tokens[i]);
+        }
+        printf("\n");
+        show_expr(expr, 0);
+        printf("\n");
+        for (u8 i = 0; i < memory->len_insts; ++i) {
+            printf("%3hhu", i);
+            show_inst(memory->insts[i]);
+        }
+    }
     free(memory);
+    printf("\nDone!\n");
     return EXIT_SUCCESS;
 }
