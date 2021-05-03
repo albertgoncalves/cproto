@@ -4,22 +4,27 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define STATIC_ASSERT _Static_assert
+
 // NOTE: See `https://swtch.com/~rsc/regexp/regexp2.html`.
 // NOTE: See `https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04_08`.
 // NOTE: See `https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html`.
 
-#define CAP_TOKENS    64
-#define CAP_EXPRS     64
-#define CAP_PRE_INSTS 64
-#define CAP_INSTS     64
-#define CAP_LABELS    64
+#define CAP_TOKENS 64
+#define CAP_EXPRS  64
+#define CAP_INSTS  64
+#define CAP_LABELS 64
 
-typedef uint8_t u8;
-typedef size_t  usize;
+typedef uint8_t  u8;
+typedef uint64_t u64;
+typedef size_t   usize;
 
 typedef int32_t i32;
 
-#define STATIC_ASSERT _Static_assert
+typedef enum {
+    FALSE = 0,
+    TRUE,
+} Bool;
 
 typedef struct {
     const char* chars;
@@ -130,22 +135,19 @@ typedef struct {
 } Inst;
 
 typedef struct {
-    u8 program;
-    u8 string;
-} Index;
-
-typedef struct {
     Token   tokens[CAP_TOKENS];
     u8      len_tokens;
     u8      cur_tokens;
     Expr    exprs[CAP_EXPRS];
     u8      len_exprs;
-    PreInst pre_insts[CAP_PRE_INSTS];
+    PreInst pre_insts[CAP_INSTS];
     u8      len_pre_insts;
     u8      labels[CAP_LABELS];
     u8      len_labels;
     Inst    insts[CAP_INSTS];
     u8      len_insts;
+    u8      indices_0[CAP_INSTS];
+    u8      indices_1[CAP_INSTS];
 } Memory;
 
 static Token* alloc_token(Memory* memory) {
@@ -159,7 +161,7 @@ static Expr* alloc_expr(Memory* memory) {
 }
 
 static PreInst* alloc_pre_inst(Memory* memory) {
-    EXIT_IF(CAP_PRE_INSTS <= memory->len_pre_insts);
+    EXIT_IF(CAP_INSTS <= memory->len_pre_insts);
     return &memory->pre_insts[memory->len_pre_insts++];
 }
 
@@ -627,6 +629,82 @@ static void show_inst(Inst inst) {
     }
 }
 
+static void insert(u8* array, u8* len, u8 value) {
+    for (u8 i = 0; i < *len; ++i) {
+        if (value == array[i]) {
+            return;
+        }
+    }
+    array[(*len)++] = value;
+}
+
+static Bool match(Memory* memory, String string) {
+    u8* indices = &memory->indices_0[0];
+    u8  len_indices = 0;
+    u8* next_indices = &memory->indices_1[0];
+    u8  len_next_indices = 0;
+    indices[len_indices++] = 0;
+    for (u8 i = 0; i < string.len; ++i) {
+        for (u8 j = 0; j < len_indices; ++j) {
+            Inst inst = memory->insts[indices[j]];
+            switch (inst.tag) {
+            case INST_CHAR: {
+                if (string.chars[i] == inst.op.as_char) {
+                    insert(next_indices, &len_next_indices, indices[j] + 1);
+                }
+                break;
+            }
+            case INST_JUMP: {
+                insert(indices, &len_indices, inst.op.as_line[0]);
+                break;
+            }
+            case INST_SPLIT: {
+                insert(indices, &len_indices, inst.op.as_line[0]);
+                insert(indices, &len_indices, inst.op.as_line[1]);
+                break;
+            }
+            case INST_MATCH: {
+                break;
+            }
+            default: {
+                ERROR();
+            }
+            }
+        }
+        {
+            u8* t = indices;
+            indices = next_indices;
+            next_indices = t;
+            len_indices = len_next_indices;
+            len_next_indices = 0;
+        }
+    }
+    for (u8 i = 0; i < len_indices; ++i) {
+        Inst inst = memory->insts[indices[i]];
+        switch (inst.tag) {
+        case INST_CHAR: {
+            break;
+        }
+        case INST_JUMP: {
+            insert(indices, &len_indices, inst.op.as_line[0]);
+            break;
+        }
+        case INST_SPLIT: {
+            insert(indices, &len_indices, inst.op.as_line[0]);
+            insert(indices, &len_indices, inst.op.as_line[1]);
+            break;
+        }
+        case INST_MATCH: {
+            return TRUE;
+        }
+        default: {
+            ERROR();
+        }
+        }
+    }
+    return FALSE;
+}
+
 /*           "fo*|bar?"
  *
  *           __ (|) __
@@ -653,7 +731,6 @@ i32 main(void) {
            "sizeof(InstTag)    : %zu\n"
            "sizeof(InstOp)     : %zu\n"
            "sizeof(Inst)       : %zu\n"
-           "sizeof(Index)      : %zu\n"
            "sizeof(Memory)     : %zu\n"
            "\n",
            sizeof(TokenTag),
@@ -667,7 +744,6 @@ i32 main(void) {
            sizeof(InstTag),
            sizeof(InstOp),
            sizeof(Inst),
-           sizeof(Index),
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
     Expr*   expr;
@@ -696,6 +772,14 @@ i32 main(void) {
             show_inst(memory->insts[i]);
         }
     }
+    EXIT_IF(!match(memory, TO_STRING("f")));
+    EXIT_IF(!match(memory, TO_STRING("foooooooooooo")));
+    EXIT_IF(!match(memory, TO_STRING("ba")));
+    EXIT_IF(!match(memory, TO_STRING("baba")));
+    EXIT_IF(!match(memory, TO_STRING("bar")));
+    EXIT_IF(!match(memory, TO_STRING("baz")));
+    EXIT_IF(!match(memory, TO_STRING("babarbazba")));
+    EXIT_IF(!match(memory, TO_STRING("jazz")));
     free(memory);
     printf("\nDone!\n");
     return EXIT_SUCCESS;
