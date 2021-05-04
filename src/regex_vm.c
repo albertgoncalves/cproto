@@ -10,10 +10,11 @@
 // NOTE: See `https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04_08`.
 // NOTE: See `https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html`.
 
-#define CAP_TOKENS 64
-#define CAP_EXPRS  64
-#define CAP_INSTS  64
-#define CAP_LABELS 64
+#define CAP_TOKENS    128
+#define CAP_EXPRS     128
+#define CAP_PRE_INSTS 128
+#define CAP_INSTS     64
+#define CAP_LABELS    64
 
 typedef uint8_t  u8;
 typedef uint64_t u64;
@@ -31,15 +32,15 @@ typedef struct {
     u8          len;
 } String;
 
-#define EXIT_IF(condition)         \
-    if (condition) {               \
-        fprintf(stderr,            \
-                "%s:%s:%d `%s`\n", \
-                __FILE__,          \
-                __func__,          \
-                __LINE__,          \
-                #condition);       \
-        exit(EXIT_FAILURE);        \
+#define EXIT_IF(condition)           \
+    if (condition) {                 \
+        fprintf(stderr,              \
+                "\n%s:%s:%d `%s`\n", \
+                __FILE__,            \
+                __func__,            \
+                __LINE__,            \
+                #condition);         \
+        exit(EXIT_FAILURE);          \
     }
 
 #define TO_STRING(literal)          \
@@ -140,7 +141,7 @@ typedef struct {
     u8      cur_tokens;
     Expr    exprs[CAP_EXPRS];
     u8      len_exprs;
-    PreInst pre_insts[CAP_INSTS];
+    PreInst pre_insts[CAP_PRE_INSTS];
     u8      len_pre_insts;
     u8      labels[CAP_LABELS];
     u8      len_labels;
@@ -149,6 +150,21 @@ typedef struct {
     u8      indices_0[CAP_INSTS];
     u8      indices_1[CAP_INSTS];
 } Memory;
+
+typedef struct {
+    u8* buffer;
+    u64 flags;
+    u8  len;
+} Indices;
+
+static void reset(Memory* memory) {
+    memory->len_tokens = 0;
+    memory->cur_tokens = 0;
+    memory->len_exprs = 0;
+    memory->len_pre_insts = 0;
+    memory->len_labels = 0;
+    memory->len_insts = 0;
+}
 
 static Token* alloc_token(Memory* memory) {
     EXIT_IF(CAP_TOKENS <= memory->len_tokens);
@@ -161,7 +177,7 @@ static Expr* alloc_expr(Memory* memory) {
 }
 
 static PreInst* alloc_pre_inst(Memory* memory) {
-    EXIT_IF(CAP_INSTS <= memory->len_pre_insts);
+    EXIT_IF(CAP_PRE_INSTS <= memory->len_pre_insts);
     return &memory->pre_insts[memory->len_pre_insts++];
 }
 
@@ -602,6 +618,17 @@ static void resolve_labels(Memory* memory) {
     }
 }
 
+static Expr* compile(Memory* memory, String regex) {
+    reset(memory);
+    set_tokens(memory, regex);
+    Expr* expr = parse_expr(memory, BINDING_INIT);
+    emit(memory, expr);
+    PreInst* pre_inst = alloc_pre_inst(memory);
+    pre_inst->tag = PRE_INST_MATCH;
+    resolve_labels(memory);
+    return expr;
+}
+
 #define LINE_FMT "%hhu"
 
 static void show_inst(Inst inst) {
@@ -629,38 +656,59 @@ static void show_inst(Inst inst) {
     }
 }
 
-static void insert(u8* array, u8* len, u8 value) {
-    for (u8 i = 0; i < *len; ++i) {
-        if (value == array[i]) {
-            return;
-        }
+static void show_all(Memory* memory, Expr* expr) {
+    for (u8 i = 0; i < memory->len_tokens; ++i) {
+        show_token(memory->tokens[i]);
     }
-    array[(*len)++] = value;
+    printf("\n");
+    show_expr(expr, 0);
+    printf("\n");
+    for (u8 i = 0; i < memory->len_insts; ++i) {
+        printf("%3hhu", i);
+        show_inst(memory->insts[i]);
+    }
+    printf("\n");
 }
 
+#define PUSH_INDICES(indices, index)                                 \
+    {                                                                \
+        if (((indices.flags >> (u64)(index)) & 1lu) == 0) {          \
+            EXIT_IF(CAP_INSTS <= indices.len);                       \
+            indices.buffer[indices.len++] = (index);                 \
+            indices.flags = (indices.flags | (1lu << (u64)(index))); \
+        }                                                            \
+    }
+
+STATIC_ASSERT(CAP_INSTS <= 64, "64 < CAP_INSTS");
 static Bool match(Memory* memory, String string) {
-    u8* indices = &memory->indices_0[0];
-    u8  len_indices = 0;
-    u8* next_indices = &memory->indices_1[0];
-    u8  len_next_indices = 0;
-    indices[len_indices++] = 0;
+    Indices current = {
+        .buffer = &memory->indices_0[0],
+        .flags = 0,
+        .len = 0,
+    };
+    Indices next = {
+        .buffer = &memory->indices_1[0],
+        .flags = 0,
+        .len = 0,
+    };
+    PUSH_INDICES(current, 0);
     for (u8 i = 0; i < string.len; ++i) {
-        for (u8 j = 0; j < len_indices; ++j) {
-            Inst inst = memory->insts[indices[j]];
+        for (u8 j = 0; j < current.len; ++j) {
+            Inst inst = memory->insts[current.buffer[j]];
             switch (inst.tag) {
             case INST_CHAR: {
                 if (string.chars[i] == inst.op.as_char) {
-                    insert(next_indices, &len_next_indices, indices[j] + 1);
+                    PUSH_INDICES(next, current.buffer[j] + 1);
                 }
                 break;
             }
             case INST_JUMP: {
-                insert(indices, &len_indices, inst.op.as_line[0]);
+                PUSH_INDICES(current, inst.op.as_line[0]);
                 break;
             }
             case INST_SPLIT: {
-                insert(indices, &len_indices, inst.op.as_line[0]);
-                insert(indices, &len_indices, inst.op.as_line[1]);
+                PUSH_INDICES(current, inst.op.as_line[0]);
+                PUSH_INDICES(current, inst.op.as_line[1]);
                 break;
             }
             case INST_MATCH: {
@@ -672,26 +720,28 @@ static Bool match(Memory* memory, String string) {
             }
         }
         {
-            u8* t = indices;
-            indices = next_indices;
-            next_indices = t;
-            len_indices = len_next_indices;
-            len_next_indices = 0;
+            u8* buffer = current.buffer;
+            current = next;
+            next = (Indices){
+                .buffer = buffer,
+                .len = 0,
+                .flags = 0,
+            };
         }
     }
-    for (u8 i = 0; i < len_indices; ++i) {
-        Inst inst = memory->insts[indices[i]];
+    for (u8 i = 0; i < current.len; ++i) {
+        Inst inst = memory->insts[current.buffer[i]];
         switch (inst.tag) {
         case INST_CHAR: {
             break;
         }
         case INST_JUMP: {
-            insert(indices, &len_indices, inst.op.as_line[0]);
+            PUSH_INDICES(current, inst.op.as_line[0]);
             break;
         }
         case INST_SPLIT: {
-            insert(indices, &len_indices, inst.op.as_line[0]);
-            insert(indices, &len_indices, inst.op.as_line[1]);
+            PUSH_INDICES(current, inst.op.as_line[0]);
+            PUSH_INDICES(current, inst.op.as_line[1]);
             break;
         }
         case INST_MATCH: {
@@ -705,18 +755,17 @@ static Bool match(Memory* memory, String string) {
     return FALSE;
 }
 
-/*           "fo*|bar?"
- *
- *           __ (|) __
- *          /         \
- *        (.)         (.)
- *       /   \       /   \
- *      f    (*)    b    (.)
- *              \       /   \
- *               o     a    (?)
- *                             \
- *                              r
- */
+#define MATCH(memory, string_literal)                      \
+    {                                                      \
+        EXIT_IF(!match(memory, TO_STRING(string_literal))) \
+        fprintf(stderr, ".");                              \
+    }
+
+#define NO_MATCH(memory, string_literal)                  \
+    {                                                     \
+        EXIT_IF(match(memory, TO_STRING(string_literal))) \
+        fprintf(stderr, ".");                             \
+    }
 
 i32 main(void) {
     printf("\n"
@@ -731,6 +780,7 @@ i32 main(void) {
            "sizeof(InstTag)    : %zu\n"
            "sizeof(InstOp)     : %zu\n"
            "sizeof(Inst)       : %zu\n"
+           "sizeof(Indices)    : %zu\n"
            "sizeof(Memory)     : %zu\n"
            "\n",
            sizeof(TokenTag),
@@ -744,42 +794,52 @@ i32 main(void) {
            sizeof(InstTag),
            sizeof(InstOp),
            sizeof(Inst),
+           sizeof(Indices),
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
-    Expr*   expr;
     {
-        String regex = TO_STRING("fo*|(ba(r|z?))+|jazz");
-        set_tokens(memory, regex);
-        expr = parse_expr(memory, BINDING_INIT);
-        {
-            memory->len_pre_insts = 0;
-            memory->len_labels = 0;
-            emit(memory, expr);
-            PreInst* pre_inst = alloc_pre_inst(memory);
-            pre_inst->tag = PRE_INST_MATCH;
-        }
-        resolve_labels(memory);
+        String regex = TO_STRING("fo*|(ba(r|z?))+|jazz|q*");
+        Expr*  expr = compile(memory, regex);
+        show_all(memory, expr);
+        NO_MATCH(memory, "ffooo");
+        NO_MATCH(memory, "b");
+        NO_MATCH(memory, "bab");
+        NO_MATCH(memory, "jaz");
+        NO_MATCH(memory, "jazzz");
+        MATCH(memory, "");
+        MATCH(memory, "f");
+        MATCH(memory, "foooooooooooo");
+        MATCH(memory, "ba");
+        MATCH(memory, "baba");
+        MATCH(memory, "bar");
+        MATCH(memory, "baz");
+        MATCH(memory, "babarbazba");
+        MATCH(memory, "jazz");
+        printf("\n");
     }
     {
-        for (u8 i = 0; i < memory->len_tokens; ++i) {
-            show_token(memory->tokens[i]);
-        }
+        String regex =
+            TO_STRING("a?a?a?a?a?a?a?a?a?a?a?a?a?a?aaaaaaaaaaaaaaaaaaa");
+        compile(memory, regex);
+        NO_MATCH(memory, "aaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        NO_MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         printf("\n");
-        show_expr(expr, 0);
-        printf("\n");
-        for (u8 i = 0; i < memory->len_insts; ++i) {
-            printf("%3hhu", i);
-            show_inst(memory->insts[i]);
-        }
     }
-    EXIT_IF(!match(memory, TO_STRING("f")));
-    EXIT_IF(!match(memory, TO_STRING("foooooooooooo")));
-    EXIT_IF(!match(memory, TO_STRING("ba")));
-    EXIT_IF(!match(memory, TO_STRING("baba")));
-    EXIT_IF(!match(memory, TO_STRING("bar")));
-    EXIT_IF(!match(memory, TO_STRING("baz")));
-    EXIT_IF(!match(memory, TO_STRING("babarbazba")));
-    EXIT_IF(!match(memory, TO_STRING("jazz")));
     free(memory);
     printf("\nDone!\n");
     return EXIT_SUCCESS;
