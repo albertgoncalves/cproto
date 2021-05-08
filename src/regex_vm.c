@@ -831,8 +831,7 @@ i32 main(void) {
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
     {
-        String regex = TO_STRING("fo*|(ba(r|z?))+|jazz");
-        Expr*  expr = compile(memory, regex);
+        Expr* expr = compile(memory, TO_STRING("fo*|(ba(r|z?))+|jazz"));
         show_all(memory, expr);
         NO_SEARCH(memory, "");
         NO_SEARCH(memory, "???");
@@ -853,9 +852,8 @@ i32 main(void) {
         fprintf(stderr, "\n");
     }
     {
-        String regex =
-            TO_STRING("a?a?a?a?a?a?a?a?a?a?a?a?a?a?aaaaaaaaaaaaaaaaaaa");
-        compile(memory, regex);
+        compile(memory,
+                TO_STRING("a?a?a?a?a?a?a?a?a?a?a?a?a?a?aaaaaaaaaaaaaaaaaaa"));
         NO_SEARCH(memory, "aaaaaaaaaaaaaaaaaa");
         SEARCH(memory, " aaaaaaaaaaaaaaaaaaa", 1, 20);
         SEARCH(memory, " aaaaaaaaaaaaaaaaaaaaaaaaa", 1, 26);
