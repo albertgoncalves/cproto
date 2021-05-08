@@ -10,8 +10,9 @@
 #define CAP_TOKENS    128
 #define CAP_EXPRS     128
 #define CAP_PRE_INSTS 128
-#define CAP_INSTS     256
-#define CAP_LABELS    128
+#define CAP_INSTS     64
+#define CAP_LABELS    64
+#define CAP_THREADS   256
 
 typedef uint8_t  u8;
 typedef uint64_t u64;
@@ -149,7 +150,7 @@ typedef struct {
     u8      len_labels;
     Inst    insts[CAP_INSTS];
     u8      len_insts;
-    Thread  threads[2][CAP_INSTS];
+    Thread  threads[2][CAP_THREADS];
 } Memory;
 
 typedef struct {
@@ -682,7 +683,7 @@ static void push_threads(Threads* threads, u8 index, u8 start) {
             return;
         }
     }
-    EXIT_IF(CAP_INSTS <= threads->len);
+    EXIT_IF(CAP_THREADS <= threads->len);
     threads->buffer[threads->len++] = (Thread){
         .index = index,
         .start = start,
