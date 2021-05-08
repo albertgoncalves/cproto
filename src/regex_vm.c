@@ -1,10 +1,7 @@
-#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define STATIC_ASSERT _Static_assert
 
 // NOTE: See `https://swtch.com/~rsc/regexp/regexp2.html`.
 // NOTE: See `https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04_08`.
@@ -13,8 +10,8 @@
 #define CAP_TOKENS    128
 #define CAP_EXPRS     128
 #define CAP_PRE_INSTS 128
-#define CAP_INSTS     64
-#define CAP_LABELS    64
+#define CAP_INSTS     256
+#define CAP_LABELS    128
 
 typedef uint8_t  u8;
 typedef uint64_t u64;
@@ -136,6 +133,11 @@ typedef struct {
 } Inst;
 
 typedef struct {
+    u8 index;
+    u8 start;
+} Thread;
+
+typedef struct {
     Token   tokens[CAP_TOKENS];
     u8      len_tokens;
     u8      cur_tokens;
@@ -147,15 +149,20 @@ typedef struct {
     u8      len_labels;
     Inst    insts[CAP_INSTS];
     u8      len_insts;
-    u8      indices_0[CAP_INSTS];
-    u8      indices_1[CAP_INSTS];
+    Thread  threads_0[CAP_INSTS];
+    Thread  threads_1[CAP_INSTS];
 } Memory;
 
 typedef struct {
-    u8* buffer;
-    u64 flags;
-    u8  len;
-} Indices;
+    Thread* buffer;
+    u8      len;
+} Threads;
+
+typedef struct {
+    u8   start;
+    u8   end;
+    Bool match;
+} Bounds;
 
 static void reset(Memory* memory) {
     memory->len_tokens = 0;
@@ -196,7 +203,6 @@ static Inst* alloc_inst(Memory* memory) {
         token->tag = TOKEN_CONCAT;                                      \
     }
 
-STATIC_ASSERT(COUNT_TOKEN_TAG == 8, "COUNT_TOKEN_TAG != 8");
 static void set_tokens(Memory* memory, String string) {
     Parens parens = {0};
     for (u8 i = 0; i < string.len; ++i) {
@@ -670,48 +676,61 @@ static void show_all(Memory* memory, Expr* expr) {
     printf("\n");
 }
 
-#define PUSH_INDICES(indices, index)                                 \
-    {                                                                \
-        if (((indices.flags >> (u64)(index)) & 1lu) == 0) {          \
-            EXIT_IF(CAP_INSTS <= indices.len);                       \
-            indices.buffer[indices.len++] = (index);                 \
-            indices.flags = (indices.flags | (1lu << (u64)(index))); \
-        }                                                            \
+static void push_threads(Threads* threads, u8 index, u8 start) {
+    for (u8 i = 0; i < threads->len; ++i) {
+        Thread thread = threads->buffer[i];
+        if ((thread.index == index) && (thread.start == start)) {
+            return;
+        }
     }
+    EXIT_IF(CAP_INSTS <= threads->len);
+    threads->buffer[threads->len++] = (Thread){
+        .index = index,
+        .start = start,
+    };
+}
 
-STATIC_ASSERT(CAP_INSTS <= 64, "64 < CAP_INSTS");
-static Bool match(Memory* memory, String string) {
-    Indices current = {
-        .buffer = &memory->indices_0[0],
-        .flags = 0,
+static Bounds search(Memory* memory, String string) {
+    Threads current = {
+        .buffer = &memory->threads_0[0],
         .len = 0,
     };
-    Indices next = {
-        .buffer = &memory->indices_1[0],
-        .flags = 0,
+    Threads next = {
+        .buffer = &memory->threads_1[0],
         .len = 0,
     };
-    PUSH_INDICES(current, 0);
+    Bounds result = {0};
     for (u8 i = 0; i < string.len; ++i) {
+        push_threads(&current, 0, i);
         for (u8 j = 0; j < current.len; ++j) {
-            Inst inst = memory->insts[current.buffer[j]];
+            Inst inst = memory->insts[current.buffer[j].index];
+            u8   start = current.buffer[j].start;
             switch (inst.tag) {
             case INST_CHAR: {
                 if (string.chars[i] == inst.op.as_char) {
-                    PUSH_INDICES(next, current.buffer[j] + 1);
+                    push_threads(&next, current.buffer[j].index + 1, start);
                 }
                 break;
             }
             case INST_JUMP: {
-                PUSH_INDICES(current, inst.op.as_line[0]);
+                push_threads(&current, inst.op.as_line[0], start);
                 break;
             }
             case INST_SPLIT: {
-                PUSH_INDICES(current, inst.op.as_line[0]);
-                PUSH_INDICES(current, inst.op.as_line[1]);
+                push_threads(&current, inst.op.as_line[0], start);
+                push_threads(&current, inst.op.as_line[1], start);
                 break;
             }
             case INST_MATCH: {
+                if (!result.match) {
+                    result = (Bounds){
+                        .start = start,
+                        .end = i,
+                        .match = TRUE,
+                    };
+                } else if ((result.start == start) && (result.end < i)) {
+                    result.end = i;
+                }
                 break;
             }
             default: {
@@ -720,51 +739,62 @@ static Bool match(Memory* memory, String string) {
             }
         }
         {
-            u8* buffer = current.buffer;
+            Thread* buffer = current.buffer;
             current = next;
-            next = (Indices){
+            next = (Threads){
                 .buffer = buffer,
                 .len = 0,
-                .flags = 0,
             };
         }
     }
     for (u8 i = 0; i < current.len; ++i) {
-        Inst inst = memory->insts[current.buffer[i]];
+        Inst inst = memory->insts[current.buffer[i].index];
+        u8   start = current.buffer[i].start;
         switch (inst.tag) {
         case INST_CHAR: {
             break;
         }
         case INST_JUMP: {
-            PUSH_INDICES(current, inst.op.as_line[0]);
+            push_threads(&current, inst.op.as_line[0], start);
             break;
         }
         case INST_SPLIT: {
-            PUSH_INDICES(current, inst.op.as_line[0]);
-            PUSH_INDICES(current, inst.op.as_line[1]);
+            push_threads(&current, inst.op.as_line[0], start);
+            push_threads(&current, inst.op.as_line[1], start);
             break;
         }
         case INST_MATCH: {
-            return TRUE;
+            if (!result.match) {
+                result = (Bounds){
+                    .start = start,
+                    .end = string.len,
+                    .match = TRUE,
+                };
+            } else if ((result.start == start) && (result.end < string.len)) {
+                result.end = string.len;
+            }
+            break;
         }
         default: {
             ERROR();
         }
         }
     }
-    return FALSE;
+    return result;
 }
 
-#define MATCH(memory, string_literal)                      \
-    {                                                      \
-        EXIT_IF(!match(memory, TO_STRING(string_literal))) \
-        fprintf(stderr, ".");                              \
+#define SEARCH(memory, string_literal, start_, end_)               \
+    {                                                              \
+        Bounds result = search(memory, TO_STRING(string_literal)); \
+        EXIT_IF((!result.match) || (result.start != start_) ||     \
+                (result.end != end_));                             \
+        fprintf(stderr, ".");                                      \
     }
 
-#define NO_MATCH(memory, string_literal)                  \
-    {                                                     \
-        EXIT_IF(match(memory, TO_STRING(string_literal))) \
-        fprintf(stderr, ".");                             \
+#define NO_SEARCH(memory, string_literal)                         \
+    {                                                             \
+        EXIT_IF(search(memory, TO_STRING(string_literal)).match); \
+        fprintf(stderr, ".");                                     \
     }
 
 i32 main(void) {
@@ -780,7 +810,9 @@ i32 main(void) {
            "sizeof(InstTag)    : %zu\n"
            "sizeof(InstOp)     : %zu\n"
            "sizeof(Inst)       : %zu\n"
-           "sizeof(Indices)    : %zu\n"
+           "sizeof(Thread)     : %zu\n"
+           "sizeof(Threads)    : %zu\n"
+           "sizeof(Bounds)     : %zu\n"
            "sizeof(Memory)     : %zu\n"
            "\n",
            sizeof(TokenTag),
@@ -794,51 +826,43 @@ i32 main(void) {
            sizeof(InstTag),
            sizeof(InstOp),
            sizeof(Inst),
-           sizeof(Indices),
+           sizeof(Thread),
+           sizeof(Threads),
+           sizeof(Bounds),
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
     {
-        String regex = TO_STRING("fo*|(ba(r|z?))+|jazz|q*");
+        String regex = TO_STRING("fo*|(ba(r|z?))+|jazz");
         Expr*  expr = compile(memory, regex);
         show_all(memory, expr);
-        NO_MATCH(memory, "ffooo");
-        NO_MATCH(memory, "b");
-        NO_MATCH(memory, "bab");
-        NO_MATCH(memory, "jaz");
-        NO_MATCH(memory, "jazzz");
-        MATCH(memory, "");
-        MATCH(memory, "f");
-        MATCH(memory, "foooooooooooo");
-        MATCH(memory, "ba");
-        MATCH(memory, "baba");
-        MATCH(memory, "bar");
-        MATCH(memory, "baz");
-        MATCH(memory, "babarbazba");
-        MATCH(memory, "jazz");
-        printf("\n");
+        NO_SEARCH(memory, "");
+        NO_SEARCH(memory, "???");
+        NO_SEARCH(memory, "b");
+        NO_SEARCH(memory, "jaz");
+        SEARCH(memory, "foooooooooooo", 0, 13);
+        SEARCH(memory, "f", 0, 1);
+        SEARCH(memory, "ffooo", 0, 1);
+        SEARCH(memory, " fooo", 1, 5);
+        SEARCH(memory, "ba", 0, 2);
+        SEARCH(memory, "bab", 0, 2);
+        SEARCH(memory, "baba", 0, 4);
+        SEARCH(memory, "bar", 0, 3);
+        SEARCH(memory, " baz", 1, 4);
+        SEARCH(memory, "  babarbazba", 2, 12);
+        SEARCH(memory, "jazz", 0, 4);
+        SEARCH(memory, "jazzz", 0, 4);
+        fprintf(stderr, "\n");
     }
     {
         String regex =
             TO_STRING("a?a?a?a?a?a?a?a?a?a?a?a?a?a?aaaaaaaaaaaaaaaaaaa");
         compile(memory, regex);
-        NO_MATCH(memory, "aaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        NO_MATCH(memory, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        printf("\n");
+        NO_SEARCH(memory, "aaaaaaaaaaaaaaaaaa");
+        SEARCH(memory, " aaaaaaaaaaaaaaaaaaa", 1, 20);
+        SEARCH(memory, " aaaaaaaaaaaaaaaaaaaaaaaaa", 1, 26);
+        SEARCH(memory, " aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 1, 34);
+        SEARCH(memory, " aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 1, 34);
+        fprintf(stderr, "\n");
     }
     free(memory);
     printf("\nDone!\n");
