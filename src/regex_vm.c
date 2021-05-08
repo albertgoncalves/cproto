@@ -149,8 +149,7 @@ typedef struct {
     u8      len_labels;
     Inst    insts[CAP_INSTS];
     u8      len_insts;
-    Thread  threads_0[CAP_INSTS];
-    Thread  threads_1[CAP_INSTS];
+    Thread  threads[2][CAP_INSTS];
 } Memory;
 
 typedef struct {
@@ -692,11 +691,11 @@ static void push_threads(Threads* threads, u8 index, u8 start) {
 
 static Bounds search(Memory* memory, String string) {
     Threads current = {
-        .buffer = &memory->threads_0[0],
+        .buffer = &memory->threads[0][0],
         .len = 0,
     };
     Threads next = {
-        .buffer = &memory->threads_1[0],
+        .buffer = &memory->threads[1][0],
         .len = 0,
     };
     Bounds result = {0};
