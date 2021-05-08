@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,12 +14,16 @@
 #define CAP_INSTS     64
 #define CAP_LABELS    64
 #define CAP_THREADS   256
+#define CAP_STRING    64
+#define CAP_FLAGS     (sizeof(u64) * CAP_INSTS)
 
 typedef uint8_t  u8;
 typedef uint64_t u64;
 typedef size_t   usize;
 
 typedef int32_t i32;
+
+#define STATIC_ASSERT _Static_assert
 
 typedef enum {
     FALSE = 0,
@@ -151,10 +156,12 @@ typedef struct {
     Inst    insts[CAP_INSTS];
     u8      len_insts;
     Thread  threads[2][CAP_THREADS];
+    u64     flags[2][CAP_INSTS];
 } Memory;
 
 typedef struct {
     Thread* buffer;
+    u64*    flags;
     u8      len;
 } Threads;
 
@@ -676,27 +683,30 @@ static void show_all(Memory* memory, Expr* expr) {
     printf("\n");
 }
 
+STATIC_ASSERT(CAP_STRING == 64, "CAP_STRING != 64");
 static void push_threads(Threads* threads, u8 index, u8 start) {
-    for (u8 i = 0; i < threads->len; ++i) {
-        Thread thread = threads->buffer[i];
-        if ((thread.index == index) && (thread.start == start)) {
-            return;
-        }
+    if ((threads->flags[index] >> start) & 1lu) {
+        return;
     }
     EXIT_IF(CAP_THREADS <= threads->len);
     threads->buffer[threads->len++] = (Thread){
         .index = index,
         .start = start,
     };
+    threads->flags[index] |= 1lu << start;
 }
 
 static Bounds search(Memory* memory, String string) {
+    EXIT_IF(CAP_STRING <= string.len);
+    memset(&memory->flags[0][0], 0, 2 * CAP_FLAGS);
     Threads current = {
         .buffer = &memory->threads[0][0],
+        .flags = &memory->flags[0][0],
         .len = 0,
     };
     Threads next = {
         .buffer = &memory->threads[1][0],
+        .flags = &memory->flags[1][0],
         .len = 0,
     };
     Bounds result = {0};
@@ -740,11 +750,14 @@ static Bounds search(Memory* memory, String string) {
         }
         {
             Thread* buffer = current.buffer;
+            u64*    flags = current.flags;
             current = next;
             next = (Threads){
                 .buffer = buffer,
+                .flags = flags,
                 .len = 0,
             };
+            memset(&next.flags[0], 0, CAP_FLAGS);
         }
     }
     for (u8 i = 0; i < current.len; ++i) {
