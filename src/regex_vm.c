@@ -732,7 +732,7 @@ static Bounds search(Memory* memory, String string) {
                 break;
             }
             case INST_MATCH: {
-                if (!result.match) {
+                if ((!result.match) || (result.start == result.end)) {
                     result = (Bounds){
                         .start = start,
                         .end = i,
@@ -777,7 +777,7 @@ static Bounds search(Memory* memory, String string) {
             break;
         }
         case INST_MATCH: {
-            if (!result.match) {
+            if ((!result.match) || (result.start == result.end)) {
                 result = (Bounds){
                     .start = start,
                     .end = string.len,
@@ -844,6 +844,26 @@ i32 main(void) {
            sizeof(Bounds),
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
+    {
+        Expr* expr = compile(memory, TO_STRING("a*"));
+        show_all(memory, expr);
+        NO_SEARCH(memory, "");
+        SEARCH(memory, "   ", 2, 2);
+        SEARCH(memory, "aaaaa", 0, 5);
+        fprintf(stderr, "\n");
+    }
+    {
+        Expr* expr = compile(memory, TO_STRING("_*a|b+|c"));
+        show_all(memory, expr);
+        NO_SEARCH(memory, "");
+        NO_SEARCH(memory, " ");
+        SEARCH(memory, " a ", 1, 2);
+        SEARCH(memory, " __a ", 1, 4);
+        SEARCH(memory, "  bbb ", 2, 5);
+        SEARCH(memory, " c ", 1, 2);
+        SEARCH(memory, "abc", 0, 1);
+        fprintf(stderr, "\n");
+    }
     {
         Expr* expr = compile(memory, TO_STRING("fo*|(ba(r|z?))+|jazz"));
         show_all(memory, expr);
