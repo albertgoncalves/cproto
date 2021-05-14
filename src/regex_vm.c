@@ -844,6 +844,7 @@ i32 main(void) {
            sizeof(Bounds),
            sizeof(Memory));
     Memory* memory = calloc(1, sizeof(Memory));
+    EXIT_IF(!memory);
     {
         Expr* expr = compile(memory, TO_STRING("a*"));
         show_all(memory, expr);
