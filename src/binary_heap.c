@@ -62,7 +62,7 @@ static void insert(Heap* heap, Node node) {
     }
 }
 
-static void set_min_heap(Heap* heap, u8 i) {
+static void balance(Heap* heap, u8 i) {
     for (;;) {
         u8 l = (u8)(((i + 1) * 2) - 1);
         u8 r = l + 1;
@@ -89,11 +89,11 @@ static Node pop(Heap* heap) {
     EXIT_IF(heap->len_nodes == 0);
     Node node = heap->nodes[0];
     heap->nodes[0] = heap->nodes[--heap->len_nodes];
-    set_min_heap(heap, 0);
+    balance(heap, 0);
     return node;
 }
 
-static void delete_(Heap* heap, u8 key) {
+static void drop(Heap* heap, u8 key) {
     EXIT_IF(heap->len_nodes == 0);
     u8 i = 0;
     for (; i < heap->len_nodes; ++i) {
@@ -103,7 +103,7 @@ static void delete_(Heap* heap, u8 key) {
     }
     EXIT_IF(i == heap->len_nodes);
     heap->nodes[i] = heap->nodes[--heap->len_nodes];
-    set_min_heap(heap, i);
+    balance(heap, i);
 }
 
 Bool check(Heap*, u8);
@@ -132,9 +132,9 @@ Bool check(Heap* heap, u8 i) {
         EXIT_IF(!check(heap, 0));                      \
     }
 
-#define DELETE(heap, key)         \
+#define DROP(heap, key)           \
     {                             \
-        delete_(heap, key);       \
+        drop(heap, key);          \
         EXIT_IF(!check(heap, 0)); \
     }
 
@@ -146,18 +146,18 @@ i32 main(void) {
         INSERT(heap, 1);
         INSERT(heap, 4);
         INSERT(heap, 1);
-        DELETE(heap, 1);
+        DROP(heap, 1);
         INSERT(heap, 3);
         INSERT(heap, 12);
         INSERT(heap, 20);
         INSERT(heap, 4);
         INSERT(heap, 20);
-        DELETE(heap, 4);
+        DROP(heap, 4);
         INSERT(heap, 19);
         INSERT(heap, 3);
-        DELETE(heap, 3);
+        DROP(heap, 3);
         INSERT(heap, 0);
-        DELETE(heap, 20);
+        DROP(heap, 20);
     }
     {
         u8 n = heap->len_nodes;
