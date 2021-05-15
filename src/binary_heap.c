@@ -58,7 +58,7 @@ static void insert(Heap* heap, Node node) {
             SWAP(heap->nodes, i, j);
         }
         i = j;
-        j = i / 2;
+        j = (u8)(((i + 1) / 2) - 1);
     }
 }
 
