@@ -48,11 +48,8 @@ static void show(Heap* heap) {
         nodes[j] = t;        \
     }
 
-static void insert(Heap* heap, Node node) {
-    EXIT_IF(CAP_NODES <= heap->len_nodes);
-    u8 i = heap->len_nodes;
+static void balance_up(Heap* heap, u8 i) {
     u8 j = (u8)(((i + 1) / 2) - 1);
-    heap->nodes[heap->len_nodes++] = node;
     while (0 < i) {
         if (heap->nodes[i].priority < heap->nodes[j].priority) {
             SWAP(heap->nodes, i, j);
@@ -62,7 +59,7 @@ static void insert(Heap* heap, Node node) {
     }
 }
 
-static void balance(Heap* heap, u8 i) {
+static void balance_down(Heap* heap, u8 i) {
     for (;;) {
         u8 l = (u8)(((i + 1) * 2) - 1);
         u8 r = l + 1;
@@ -85,11 +82,18 @@ static void balance(Heap* heap, u8 i) {
     }
 }
 
+static void insert(Heap* heap, Node node) {
+    EXIT_IF(CAP_NODES <= heap->len_nodes);
+    u8 n = heap->len_nodes;
+    heap->nodes[heap->len_nodes++] = node;
+    balance_up(heap, n);
+}
+
 static Node pop(Heap* heap) {
     EXIT_IF(heap->len_nodes == 0);
     Node node = heap->nodes[0];
     heap->nodes[0] = heap->nodes[--heap->len_nodes];
-    balance(heap, 0);
+    balance_down(heap, 0);
     return node;
 }
 
@@ -102,8 +106,13 @@ static void drop(Heap* heap, u8 key) {
         }
     }
     EXIT_IF(i == heap->len_nodes);
+    u8 previous = heap->nodes[i].priority;
     heap->nodes[i] = heap->nodes[--heap->len_nodes];
-    balance(heap, i);
+    if (previous < heap->nodes[i].priority) {
+        balance_down(heap, i);
+    } else {
+        balance_up(heap, i);
+    }
 }
 
 Bool check(Heap*, u8);
@@ -143,6 +152,11 @@ i32 main(void) {
     EXIT_IF(!heap);
     {
         INSERT(heap, 8);
+        INSERT(heap, 7);
+        DROP(heap, 7);
+        DROP(heap, 8);
+        INSERT(heap, 7);
+        INSERT(heap, 8);
         INSERT(heap, 1);
         INSERT(heap, 4);
         INSERT(heap, 1);
@@ -158,13 +172,22 @@ i32 main(void) {
         DROP(heap, 3);
         INSERT(heap, 0);
         DROP(heap, 20);
+        DROP(heap, 20);
+        INSERT(heap, 20);
+        INSERT(heap, 0);
+        INSERT(heap, 25);
+        DROP(heap, 0);
     }
     {
+        u8 previous = 0;
         while (heap->len_nodes != 0) {
             show(heap);
-            check(heap, 0);
-            printf("%hhu\n", pop(heap).priority);
+            u8 current = pop(heap).priority;
+            printf("%hhu\n", current);
+            EXIT_IF((!check(heap, 0)) || (current < previous));
+            previous = current;
         }
+        printf("\n");
     }
     free(heap);
     return EXIT_SUCCESS;
