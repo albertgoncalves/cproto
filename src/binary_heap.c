@@ -160,8 +160,7 @@ i32 main(void) {
         DROP(heap, 20);
     }
     {
-        u8 n = heap->len_nodes;
-        for (u8 i = 0; i < n; ++i) {
+        while (heap->len_nodes != 0) {
             show(heap);
             check(heap, 0);
             printf("%hhu\n", pop(heap).priority);
