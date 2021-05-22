@@ -1,16 +1,19 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef float f32;
+typedef int32_t i32;
+typedef float   f32;
 
 static f32 randf(void) {
-    return (f32)rand() / (f32)RAND_MAX;
+    i32 x = rand();
+    return (f32)x / (f32)RAND_MAX;
 }
 
-int main(void) {
+i32 main(void) {
     srand(10u);
     f32 a = randf();
     f32 b = randf();
-    printf("%d\n %.6f\n%.6f\n", RAND_MAX, (double)a, (double)b);
+    printf("%d\n%.6f\n%.6f\n", RAND_MAX, a, b);
     return EXIT_SUCCESS;
 }

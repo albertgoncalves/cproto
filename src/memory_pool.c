@@ -7,13 +7,14 @@
 #define MEM_SIZE    3
 
 typedef uint8_t u8;
+typedef double  f64;
 
 typedef struct {
     char string[STRING_SIZE];
 } a_t;
 
 typedef struct {
-    double value;
+    f64 value;
 } b_t;
 
 typedef struct {

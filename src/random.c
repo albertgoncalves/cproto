@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <sys/time.h>
 
+typedef int32_t i32;
+
 typedef uint32_t u32;
 typedef uint64_t u64;
 
@@ -51,7 +53,7 @@ static u64 get_microseconds(void) {
     return (u64)time.tv_usec;
 }
 
-int main(void) {
+i32 main(void) {
     xorShiftRng xor_shift_rng;
     u64         time = get_microseconds();
     xor_shift_rng.state = (u32)time;
@@ -63,9 +65,14 @@ int main(void) {
         f32 xor_shift_mean = 0.0f;
         f32 pcg_mean = 0.0f;
         for (u32 _ = 0; _ < n; ++_) {
-            xor_shift_mean +=
-                ((f32)xor_shift_32(&xor_shift_rng)) / U32_MAX_FLOAT;
-            pcg_mean += ((f32)pcg_32(&pcg_rng)) / U32_MAX_FLOAT;
+            {
+                u32 x = xor_shift_32(&xor_shift_rng);
+                xor_shift_mean += ((f32)x) / U32_MAX_FLOAT;
+            }
+            {
+                u32 x = pcg_32(&pcg_rng);
+                pcg_mean += ((f32)x) / U32_MAX_FLOAT;
+            }
         }
         printf("iterations          : %u\n"
                "\n"
@@ -76,9 +83,9 @@ int main(void) {
                "pcg_mean            : %.8f\n",
                n,
                xor_shift_rng.state,
-               (double)(xor_shift_mean / m),
+               (xor_shift_mean / m),
                pcg_rng.state,
                pcg_rng.increment,
-               (double)(pcg_mean / m));
+               (pcg_mean / m));
     }
 }

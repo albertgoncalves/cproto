@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const char CHARS[13] = {
+static const char CHARS[] = {
     115,
     114,
     99,
@@ -18,6 +18,6 @@ static const char CHARS[13] = {
 };
 
 int main(void) {
-    printf("\"%s\"\n", (char*)(&CHARS));
+    printf("\"%s\"\n", CHARS);
     return EXIT_SUCCESS;
 }
