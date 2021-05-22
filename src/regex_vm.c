@@ -13,11 +13,11 @@
 #define CAP_PRE_INSTS 128
 #define CAP_INSTS     64
 #define CAP_LABELS    64
-#define CAP_THREADS   256
+#define CAP_THREADS   512
 #define CAP_STRING    64
 #define CAP_FLAGS     (sizeof(u64) * CAP_INSTS)
 
-typedef uint8_t  u8;
+typedef uint16_t u16;
 typedef uint64_t u64;
 typedef size_t   usize;
 
@@ -32,7 +32,7 @@ typedef enum {
 
 typedef struct {
     const char* chars;
-    u8          len;
+    u16         len;
 } String;
 
 #define EXIT_IF(condition)           \
@@ -59,8 +59,8 @@ typedef struct {
     }
 
 typedef struct {
-    u8 open_;
-    u8 close_;
+    u16 open_;
+    u16 close_;
 } Parens;
 
 typedef enum {
@@ -111,8 +111,8 @@ typedef enum {
 } PreInstTag;
 
 typedef union {
-    u8   as_label[2];
-    u8   as_line[2];
+    u16  as_label[2];
+    u16  as_line[2];
     char as_char;
 } PreInstOp;
 
@@ -129,7 +129,7 @@ typedef enum {
 } InstTag;
 
 typedef union {
-    u8   as_line[2];
+    u16  as_line[2];
     char as_char;
 } InstOp;
 
@@ -139,22 +139,22 @@ typedef struct {
 } Inst;
 
 typedef struct {
-    u8 index;
-    u8 start;
+    u16 index;
+    u16 start;
 } Thread;
 
 typedef struct {
     Token   tokens[CAP_TOKENS];
-    u8      len_tokens;
-    u8      cur_tokens;
+    u16     len_tokens;
+    u16     cur_tokens;
     Expr    exprs[CAP_EXPRS];
-    u8      len_exprs;
+    u16     len_exprs;
     PreInst pre_insts[CAP_PRE_INSTS];
-    u8      len_pre_insts;
-    u8      labels[CAP_LABELS];
-    u8      len_labels;
+    u16     len_pre_insts;
+    u16     labels[CAP_LABELS];
+    u16     len_labels;
     Inst    insts[CAP_INSTS];
-    u8      len_insts;
+    u16     len_insts;
     Thread  threads[2][CAP_THREADS];
     u64     flags[2][CAP_INSTS];
 } Memory;
@@ -162,12 +162,12 @@ typedef struct {
 typedef struct {
     Thread* buffer;
     u64*    flags;
-    u8      len;
+    u16     len;
 } Threads;
 
 typedef struct {
-    u8   start;
-    u8   end;
+    u16  start;
+    u16  end;
     Bool match;
 } Bounds;
 
@@ -212,7 +212,7 @@ static Inst* alloc_inst(Memory* memory) {
 
 static void set_tokens(Memory* memory, String string) {
     Parens parens = {0};
-    for (u8 i = 0; i < string.len; ++i) {
+    for (u16 i = 0; i < string.len; ++i) {
         EXIT_IF(parens.open_ < parens.close_);
         switch (string.chars[i]) {
         case '|': {
@@ -338,7 +338,7 @@ static Token pop_token(Memory* memory) {
 #define BINDING_CONCAT  2
 #define BINDING_POSTFIX 3
 
-static Expr* parse_expr(Memory* memory, u8 prev_binding) {
+static Expr* parse_expr(Memory* memory, u16 prev_binding) {
     if (TOKENS_EMPTY(memory)) {
         return NULL;
     }
@@ -424,11 +424,11 @@ static Expr* parse_expr(Memory* memory, u8 prev_binding) {
     return expr;
 }
 
-#define INDENT(n)                    \
-    {                                \
-        for (u8 i = 0; i < n; ++i) { \
-            printf(" ");             \
-        }                            \
+#define INDENT(n)                     \
+    {                                 \
+        for (u16 i = 0; i < n; ++i) { \
+            printf(" ");              \
+        }                             \
     }
 
 #define PAD 2
@@ -448,8 +448,8 @@ static Expr* parse_expr(Memory* memory, u8 prev_binding) {
         show_expr(expr->op.as_expr[0], n + PAD); \
     }
 
-void show_expr(Expr*, u8);
-void show_expr(Expr* expr, u8 n) {
+void show_expr(Expr*, u16);
+void show_expr(Expr* expr, u16 n) {
     if (!expr) {
         return;
     }
@@ -518,9 +518,9 @@ void emit(Memory* memory, Expr* expr) {
         break;
     }
     case EXPR_OR: {
-        u8 label_0 = memory->len_labels++;
-        u8 label_1 = memory->len_labels++;
-        u8 label_2 = memory->len_labels++;
+        u16 label_0 = memory->len_labels++;
+        u16 label_1 = memory->len_labels++;
+        u16 label_2 = memory->len_labels++;
         EMIT_SPLIT(label_0, label_1);
         EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_0);
         emit(memory, expr->op.as_expr[0]);
@@ -531,8 +531,8 @@ void emit(Memory* memory, Expr* expr) {
         break;
     }
     case EXPR_ZERO_OR_ONE: {
-        u8 label_0 = memory->len_labels++;
-        u8 label_1 = memory->len_labels++;
+        u16 label_0 = memory->len_labels++;
+        u16 label_1 = memory->len_labels++;
         EMIT_SPLIT(label_0, label_1);
         EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_0);
         emit(memory, expr->op.as_expr[0]);
@@ -540,9 +540,9 @@ void emit(Memory* memory, Expr* expr) {
         break;
     }
     case EXPR_ZERO_OR_MANY: {
-        u8 label_0 = memory->len_labels++;
-        u8 label_1 = memory->len_labels++;
-        u8 label_2 = memory->len_labels++;
+        u16 label_0 = memory->len_labels++;
+        u16 label_1 = memory->len_labels++;
+        u16 label_2 = memory->len_labels++;
         EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_0);
         EMIT_SPLIT(label_1, label_2);
         EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_1);
@@ -552,8 +552,8 @@ void emit(Memory* memory, Expr* expr) {
         break;
     }
     case EXPR_ONE_OR_MANY: {
-        u8 label_0 = memory->len_labels++;
-        u8 label_1 = memory->len_labels++;
+        u16 label_0 = memory->len_labels++;
+        u16 label_1 = memory->len_labels++;
         EMIT_PRE_INST_LABEL(PRE_INST_LABEL, label_0);
         emit(memory, expr->op.as_expr[0]);
         EMIT_SPLIT(label_0, label_1);
@@ -568,8 +568,8 @@ void emit(Memory* memory, Expr* expr) {
 
 static void resolve_labels(Memory* memory) {
     EXIT_IF(CAP_LABELS <= memory->len_labels);
-    u8 line = 0;
-    for (u8 i = 0; i < memory->len_pre_insts; ++i) {
+    u16 line = 0;
+    for (u16 i = 0; i < memory->len_pre_insts; ++i) {
         switch (memory->pre_insts[i].tag) {
         case PRE_INST_LABEL: {
             memory->labels[memory->pre_insts[i].op.as_label[0]] = line;
@@ -588,7 +588,7 @@ static void resolve_labels(Memory* memory) {
         }
         }
     }
-    for (u8 i = 0; i < memory->len_pre_insts; ++i) {
+    for (u16 i = 0; i < memory->len_pre_insts; ++i) {
         switch (memory->pre_insts[i].tag) {
         case PRE_INST_LABEL: {
             break;
@@ -642,7 +642,7 @@ static Expr* compile(Memory* memory, String regex) {
     return expr;
 }
 
-#define LINE_FMT "%hhu"
+#define LINE_FMT "%hu"
 
 static void show_inst(Inst inst) {
     switch (inst.tag) {
@@ -670,21 +670,21 @@ static void show_inst(Inst inst) {
 }
 
 static void show_all(Memory* memory, Expr* expr) {
-    for (u8 i = 0; i < memory->len_tokens; ++i) {
+    for (u16 i = 0; i < memory->len_tokens; ++i) {
         show_token(memory->tokens[i]);
     }
     printf("\n");
     show_expr(expr, 0);
     printf("\n");
-    for (u8 i = 0; i < memory->len_insts; ++i) {
-        printf("%3hhu", i);
+    for (u16 i = 0; i < memory->len_insts; ++i) {
+        printf("%3hu", i);
         show_inst(memory->insts[i]);
     }
     printf("\n");
 }
 
 STATIC_ASSERT(CAP_STRING == 64, "CAP_STRING != 64");
-static void push_threads(Threads* threads, u8 index, u8 start) {
+static void push_threads(Threads* threads, u16 index, u16 start) {
     if ((threads->flags[index] >> start) & 1lu) {
         return;
     }
@@ -710,11 +710,11 @@ static Bounds search(Memory* memory, String string) {
         .len = 0,
     };
     Bounds result = {0};
-    for (u8 i = 0; i < string.len; ++i) {
+    for (u16 i = 0; i < string.len; ++i) {
         push_threads(&current, 0, i);
-        for (u8 j = 0; j < current.len; ++j) {
+        for (u16 j = 0; j < current.len; ++j) {
             Inst inst = memory->insts[current.buffer[j].index];
-            u8   start = current.buffer[j].start;
+            u16  start = current.buffer[j].start;
             switch (inst.tag) {
             case INST_CHAR: {
                 if (string.chars[i] == inst.op.as_char) {
@@ -760,9 +760,9 @@ static Bounds search(Memory* memory, String string) {
             memset(&next.flags[0], 0, CAP_FLAGS);
         }
     }
-    for (u8 i = 0; i < current.len; ++i) {
+    for (u16 i = 0; i < current.len; ++i) {
         Inst inst = memory->insts[current.buffer[i].index];
-        u8   start = current.buffer[i].start;
+        u16  start = current.buffer[i].start;
         switch (inst.tag) {
         case INST_CHAR: {
             break;
