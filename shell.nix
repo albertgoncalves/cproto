@@ -1,10 +1,8 @@
 with import <nixpkgs> {};
-mkShell {
+mkShell.override { stdenv = llvmPackages_11.stdenv; } {
     buildInputs = [
-        clang_10
         cppcheck
         gdb
-        glibcLocales
         shellcheck
         valgrind
         xorg.libX11

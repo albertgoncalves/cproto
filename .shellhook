@@ -8,55 +8,29 @@ for x in bin build out; do
     fi
 done
 
-# NOTE: See `https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html`.
 export flags=(
+    "-ferror-limit=1"
     "-fshort-enums"
     "-funsigned-char"
     "-march=native"
-    "-O1"
     "-std=gnu11"
-    "-Wall"
-    "-Wcast-align"
-    "-Wcast-qual"
-    "-Wconversion"
-    "-Wdate-time"
-    "-Wdouble-promotion"
-    "-Wduplicated-branches"
-    "-Wduplicated-cond"
     "-Werror"
-    "-Wextra"
-    "-Wfatal-errors"
-    "-Wfloat-equal"
-    "-Wformat=2"
-    "-Wformat-signedness"
-    "-Winline"
-    "-Wlogical-op"
-    "-Wmissing-declarations"
-    "-Wmissing-include-dirs"
-    "-Wmissing-prototypes"
-    "-Wnested-externs"
-    "-Wnull-dereference"
-    "-Wpacked"
-    "-Wpedantic"
-    "-Wpointer-arith"
-    "-Wredundant-decls"
-    "-Wshadow"
-    "-Wstack-protector"
-    "-Wstrict-prototypes"
-    "-Wswitch-enum"
-    "-Wtrampolines"
-    "-Wundef"
-    "-Wunused"
-    "-Wunused-macros"
-    "-Wwrite-strings"
+    "-Weverything"
+    "-Wno-c++98-compat"
+    "-Wno-cast-align"
+    "-Wno-covered-switch-default"
+    "-Wno-disabled-macro-expansion"
+    "-Wno-extra-semi-stmt"
+    "-Wno-padded"
+    "-Wno-vla"
 )
 export flags_sanitize=(
-    "-fsanitize=address"
     "-fsanitize-address-use-after-scope"
+    "-fsanitize-undefined-trap-on-error"
+    "-fsanitize=address"
     "-fsanitize=alignment"
     "-fsanitize=bool"
     "-fsanitize=bounds"
-    "-fsanitize=bounds-strict"
     "-fsanitize=builtin"
     "-fsanitize=enum"
     "-fsanitize=float-cast-overflow"
@@ -73,7 +47,6 @@ export flags_sanitize=(
     "-fsanitize=shift-exponent"
     "-fsanitize=signed-integer-overflow"
     "-fsanitize=undefined"
-    "-fsanitize-undefined-trap-on-error"
     "-fsanitize=unreachable"
     "-fsanitize=vla-bound"
 )
@@ -91,14 +64,14 @@ runc () {
     cp "$1" "$WD/build/$handle.c"
     (
         cd "$WD/build" || return
-        gcc \
+        clang \
             -g \
             -o "$WD/bin/${handle}_valgrind" \
             "${flags[@]}" \
             "${libs[@]}" \
             "$handle.c" \
             || return
-        gcc \
+        clang \
             -o "$WD/bin/${handle}_sanitize" \
             "${flags[@]}" \
             "${flags_sanitize[@]}" \
