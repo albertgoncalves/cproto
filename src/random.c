@@ -7,7 +7,8 @@ typedef int32_t i32;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-typedef float f32;
+typedef float  f32;
+typedef double f64;
 
 #define U32_MAX_FLOAT 4294967295.0f
 
@@ -83,9 +84,9 @@ i32 main(void) {
                "pcg_mean            : %.8f\n",
                n,
                xor_shift_rng.state,
-               (xor_shift_mean / m),
+               (f64)(xor_shift_mean / m),
                pcg_rng.state,
                pcg_rng.increment,
-               (pcg_mean / m));
+               (f64)(pcg_mean / m));
     }
 }
