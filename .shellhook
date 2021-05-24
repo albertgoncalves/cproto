@@ -59,8 +59,7 @@ libs=(
 
 runc () {
     handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
-    clang-format -i "$1" || return
-    cppcheck --enable=all --suppress=missingIncludeSystem "$1" || return
+    clang-format -i -verbose "$1" || return
     pwd_=$PWD
     cp "$1" "$WD/build/$handle.c"
     (
