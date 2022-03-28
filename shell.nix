@@ -1,5 +1,5 @@
 with import <nixpkgs> {};
-mkShell.override { stdenv = llvmPackages_12.stdenv; } {
+mkShell.override { stdenv = llvmPackages_14.stdenv; } {
     buildInputs = [
         feh
         gdb
@@ -10,4 +10,5 @@ mkShell.override { stdenv = llvmPackages_12.stdenv; } {
     shellHook = ''
         . .shellhook
     '';
+    hardeningDisable = [ "all" ];
 }
