@@ -10,51 +10,35 @@ done
 
 export flags=(
     "-ferror-limit=1"
-    "-fshort-enums"
-    "-funsigned-char"
+    -fshort-enums
+    -funsigned-char
     "-march=native"
-    "-O1"
+    -O1
     "-std=gnu11"
-    "-Werror"
-    "-Weverything"
-    "-Wno-c++98-compat"
-    "-Wno-cast-align"
-    "-Wno-covered-switch-default"
-    "-Wno-declaration-after-statement"
-    "-Wno-extra-semi-stmt"
-    "-Wno-padded"
-    "-Wno-reserved-identifier"
-    "-Wno-vla"
+    -Werror
+    -Weverything
+    -Wno-c++98-compat
+    -Wno-cast-align
+    -Wno-covered-switch-default
+    -Wno-declaration-after-statement
+    -Wno-extra-semi-stmt
+    -Wno-padded
+    -Wno-reserved-identifier
+    -Wno-vla
 )
 export flags_sanitize=(
-    "-fsanitize-address-use-after-scope"
-    "-fsanitize-undefined-trap-on-error"
     "-fsanitize=address"
-    "-fsanitize=alignment"
-    "-fsanitize=bool"
     "-fsanitize=bounds"
-    "-fsanitize=builtin"
-    "-fsanitize=enum"
-    "-fsanitize=float-cast-overflow"
     "-fsanitize=float-divide-by-zero"
-    "-fsanitize=integer-divide-by-zero"
-    "-fsanitize=leak"
-    "-fsanitize=nonnull-attribute"
-    "-fsanitize=null"
-    "-fsanitize=pointer-overflow"
-    "-fsanitize=returns-nonnull-attribute"
-    "-fsanitize=shift"
-    "-fsanitize=shift-base"
-    "-fsanitize=shift-exponent"
-    "-fsanitize=signed-integer-overflow"
+    "-fsanitize=implicit-conversion"
+    "-fsanitize=integer"
+    "-fsanitize=nullability"
     "-fsanitize=undefined"
-    "-fsanitize=unreachable"
-    "-fsanitize=vla-bound"
 )
 libs=(
-    "-lm"
-    "-lX11"
-    "-pthread"
+    -lm
+    -lX11
+    -pthread
 )
 
 runc () {
