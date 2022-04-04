@@ -14,10 +14,10 @@
  */
 
 static char TOKEN;
-static char LEVEL = 0;
+static int  LEVEL = 0;
 static char POS = 0;
 
-static void print_indent(char level) {
+static void print_indent(int level) {
     while (0 < level--) {
         printf("| ");
     }

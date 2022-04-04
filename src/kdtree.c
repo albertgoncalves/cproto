@@ -87,10 +87,10 @@ static Node* alloc_node(Memory* memory) {
     }
 
 #define PARTITION(fn, dim)                   \
-    static u32 fn(u32 l, u32 r) {            \
+    static i32 fn(i32 l, i32 r) {            \
         const f32 pivot = POINTS[r]._##dim;  \
-        u32       i = l - 1;                 \
-        for (u32 j = l; j < r; ++j) {        \
+        i32       i = l - 1;                 \
+        for (i32 j = l; j < r; ++j) {        \
             if (POINTS[j]._##dim <= pivot) { \
                 ++i;                         \
                 SWAP(i, j);                  \
@@ -106,10 +106,10 @@ PARTITION(partition_y, y)
 PARTITION(partition_z, z)
 
 #define QUICKSORT(fn, dim)                       \
-    void fn(u32, u32);                           \
-    void fn(u32 l, u32 r) {                      \
+    void fn(i32, i32);                           \
+    void fn(i32 l, i32 r) {                      \
         if (l < r) {                             \
-            const u32 i = partition_##dim(l, r); \
+            const i32 i = partition_##dim(l, r); \
             if (i != 0) {                        \
                 quicksort_##dim(l, i - 1);       \
             }                                    \
@@ -121,8 +121,8 @@ QUICKSORT(quicksort_x, x)
 QUICKSORT(quicksort_y, y)
 QUICKSORT(quicksort_z, z)
 
-Node* make_tree(Memory*, u32, u32, Dim3);
-Node* make_tree(Memory* memory, u32 l, u32 r, Dim3 dim) {
+Node* make_tree(Memory*, i32, i32, Dim3);
+Node* make_tree(Memory* memory, i32 l, i32 r, Dim3 dim) {
     EXIT_IF(r < l);
     if (l == r) {
         Node* node = alloc_node(memory);
@@ -149,7 +149,7 @@ Node* make_tree(Memory* memory, u32 l, u32 r, Dim3 dim) {
         ERROR();
     }
     Node*      node = alloc_node(memory);
-    const u32  m = ((r - l) / 2) + l;
+    const i32  m = ((r - l) / 2) + l;
     const Dim3 next_dim = (dim + 1) % COUNT_DIMS;
     node->point = POINTS[m];
     node->dim = dim;

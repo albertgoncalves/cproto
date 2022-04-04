@@ -4,7 +4,6 @@
 
 typedef uint8_t u8;
 typedef int32_t i32;
-typedef size_t  usize;
 
 #define SWAP(array, i, j)    \
     {                        \
@@ -13,10 +12,10 @@ typedef size_t  usize;
         array[j] = t;        \
     }
 
-static usize partition(u8* array, usize low, usize high) {
-    u8    pivot = array[high];
-    usize i = low - 1;
-    for (usize j = low; j < high; ++j) {
+static i32 partition(u8* array, i32 low, i32 high) {
+    u8  pivot = array[high];
+    i32 i = low - 1;
+    for (i32 j = low; j < high; ++j) {
         if (array[j] <= pivot) {
             ++i;
             SWAP(array, i, j);
@@ -29,10 +28,10 @@ static usize partition(u8* array, usize low, usize high) {
 
 #undef SWAP
 
-void quicksort(u8*, usize, usize);
-void quicksort(u8* array, usize low, usize high) {
+void quicksort(u8*, i32, i32);
+void quicksort(u8* array, i32 low, i32 high) {
     if (low < high) {
-        usize i = partition(array, low, high);
+        i32 i = partition(array, low, high);
         if (i != 0) {
             quicksort(array, low, i - 1);
         }
@@ -40,17 +39,17 @@ void quicksort(u8* array, usize low, usize high) {
     }
 }
 
-static void show(u8* array, usize n) {
+static void show(u8* array, i32 n) {
     printf("[ ");
-    for (usize i = 0; i < n; ++i) {
+    for (i32 i = 0; i < n; ++i) {
         printf("%hhu ", array[i]);
     }
     printf("]\n");
 }
 
 i32 main(void) {
-    u8    array[] = {7, 0, 9, 3, 2, 4, 7, 1, 1, 0, 5, 2, 8, 9, 6, 3, 3, 2, 2};
-    usize n = sizeof(array) / sizeof(array[0]);
+    u8  array[] = {7, 0, 9, 3, 2, 4, 7, 1, 1, 0, 5, 2, 8, 9, 6, 3, 3, 2, 2};
+    i32 n = sizeof(array) / sizeof(array[0]);
     show(array, n);
     quicksort(array, 0, n - 1);
     show(array, n);

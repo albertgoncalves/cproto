@@ -3,13 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef uint8_t u8;
+typedef uint32_t u32;
+typedef int32_t  i32;
 
 #define STACK_CAP 64
 
 typedef struct {
-    u8 either;
-    u8 concat;
+    i32 either;
+    i32 concat;
 } OpCounter;
 
 #define OP_CONCAT       '.'
@@ -19,19 +20,19 @@ typedef struct {
 #define OP_ONE_OR_MANY  '+'
 
 static char* get_postfix(const char* expression) {
-    u8 n = (u8)strlen(expression);
+    i32 n = (i32)strlen(expression);
     if (n == 0) {
         exit(EXIT_FAILURE);
     }
     OpCounter counter = {0};
     OpCounter stack[STACK_CAP] = {0};
-    u8        stack_index = 0;
-    char*     buffer = calloc(n * 2u, sizeof(char));
+    i32       stack_index = 0;
+    char*     buffer = calloc(((u32)n) * 2u, sizeof(char));
     if (buffer == NULL) {
         exit(EXIT_FAILURE);
     }
-    u8 buffer_index = 0;
-    for (u8 i = 0; i < n; ++i) {
+    i32 buffer_index = 0;
+    for (i32 i = 0; i < n; ++i) {
         char token = expression[i];
         switch (token) {
         case OP_CONCAT: {
@@ -117,7 +118,7 @@ static char* get_postfix(const char* expression) {
     return buffer;
 }
 
-int main(void) {
+i32 main(void) {
     const char* input = "a(b|c)*d";
     char*       output = get_postfix(input);
     printf("%s -> %s\n", input, output);
