@@ -12,6 +12,8 @@ typedef double f64;
 
 #define U32_MAX_FLOAT 4294967295.0f
 
+#define NO_INT_SAN __attribute__((no_sanitize("integer")))
+
 typedef struct timeval timeValue;
 
 typedef struct {
@@ -23,7 +25,7 @@ typedef struct {
     u64 increment;
 } pcgRng;
 
-static u32 xor_shift_32(xorShiftRng* rng) {
+NO_INT_SAN static u32 xor_shift_32(xorShiftRng* rng) {
     u32 state = rng->state;
     state ^= state << 13u;
     state ^= state >> 17u;
@@ -32,7 +34,7 @@ static u32 xor_shift_32(xorShiftRng* rng) {
     return state;
 }
 
-static u32 pcg_32(pcgRng* rng) {
+NO_INT_SAN static u32 pcg_32(pcgRng* rng) {
     u64 state = rng->state;
     rng->state = (state * 6364136223846793005ull) + (rng->increment | 1u);
     u32 xor_shift = (u32)(((state >> 18u) ^ state) >> 27u);

@@ -75,7 +75,7 @@ static void set_dib_header(dibHeader* header) {
     header->bits_per_pixel = sizeof(u32) * 8u;
 }
 
-static u32 pcg_32(pcgRng* rng) {
+__attribute__((no_sanitize("integer"))) static u32 pcg_32(pcgRng* rng) {
     u64 state = rng->state;
     rng->state = (state * 6364136223846793005ull) + (rng->increment | 1u);
     u32 xor_shift = (u32)(((state >> 18u) ^ state) >> 27u);
@@ -83,7 +83,8 @@ static u32 pcg_32(pcgRng* rng) {
     return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31u));
 }
 
-static u32 pcg_32_bound(pcgRng* rng, u32 bound) {
+__attribute__((no_sanitize("integer"))) static u32 pcg_32_bound(pcgRng* rng,
+                                                                u32 bound) {
     u32 threshold = (-bound) % bound;
     for (;;) {
         u32 value = pcg_32(rng);
