@@ -8,12 +8,22 @@ for x in bin build out; do
     fi
 done
 
-export flags=(
+export FLAGS=(
     "-ferror-limit=1"
+    "-fsanitize=address"
+    "-fsanitize=bounds"
+    "-fsanitize=float-divide-by-zero"
+    "-fsanitize=implicit-conversion"
+    "-fsanitize=integer"
+    "-fsanitize=nullability"
+    "-fsanitize=undefined"
     -fshort-enums
     -funsigned-char
+    -lm
+    -lX11
     "-march=native"
     -O1
+    -pthread
     "-std=gnu11"
     -Werror
     -Weverything
@@ -26,49 +36,20 @@ export flags=(
     -Wno-reserved-identifier
     -Wno-vla
 )
-export flags_sanitize=(
-    "-fsanitize=address"
-    "-fsanitize=bounds"
-    "-fsanitize=float-divide-by-zero"
-    "-fsanitize=implicit-conversion"
-    "-fsanitize=integer"
-    "-fsanitize=nullability"
-    "-fsanitize=undefined"
-)
-libs=(
-    -lm
-    -lX11
-    -pthread
-)
 
 runc () {
     handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
     clang-format -i -verbose "$1" || return
-    pwd_=$PWD
     cp "$1" "$WD/build/$handle.c"
     (
         cd "$WD/build" || return
-        clang \
-            -g \
-            -o "$WD/bin/${handle}_valgrind" \
-            "${flags[@]}" \
-            "${libs[@]}" \
-            "$handle.c" \
-            || return
-        clang \
-            -o "$WD/bin/${handle}_sanitize" \
-            "${flags[@]}" \
-            "${flags_sanitize[@]}" \
-            "${libs[@]}" \
-            "$handle.c" \
-            || return
-        cd "$pwd_" || return
-        if [ -z "$2" ]; then
-            "$WD/bin/${handle}_sanitize"
-        else
-            "$WD/bin/${handle}_sanitize" "$2"
-        fi
+        clang -o "$WD/bin/${handle}" "${FLAGS[@]}" "$handle.c" || return
     )
+    if [ -z "$2" ]; then
+        "$WD/bin/${handle}"
+    else
+        "$WD/bin/${handle}" "$2"
+    fi
 }
 
 export -f runc
