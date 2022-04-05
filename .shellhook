@@ -41,14 +41,15 @@ runc () {
     handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
     clang-format -i -verbose "$1" || return
     cp "$1" "$WD/build/$handle.c"
-    (
+    if "$(
         cd "$WD/build" || return
-        clang -o "$WD/bin/${handle}" "${FLAGS[@]}" "$handle.c" || return
-    )
-    if [ -z "$2" ]; then
-        "$WD/bin/${handle}"
-    else
-        "$WD/bin/${handle}" "$2"
+        clang -o "$WD/bin/${handle}" "${FLAGS[@]}" "$handle.c"
+    )"; then
+        if [ -z "$2" ]; then
+            "$WD/bin/${handle}"
+        else
+            "$WD/bin/${handle}" "$2"
+        fi
     fi
 }
 
