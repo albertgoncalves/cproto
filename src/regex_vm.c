@@ -448,8 +448,7 @@ static Expr* parse_expr(Memory* memory, u16 prev_binding) {
         show_expr(expr->op.as_expr[0], n + PAD); \
     }
 
-void show_expr(Expr*, u16);
-void show_expr(Expr* expr, u16 n) {
+static void show_expr(Expr* expr, u16 n) {
     if (!expr) {
         return;
     }
@@ -500,8 +499,7 @@ void show_expr(Expr* expr, u16 n) {
         pre_inst->op.as_label[1] = label_1;         \
     }
 
-void emit(Memory*, Expr*);
-void emit(Memory* memory, Expr* expr) {
+static void emit(Memory* memory, Expr* expr) {
     if (!expr) {
         return;
     }

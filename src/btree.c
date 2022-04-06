@@ -300,7 +300,6 @@ static Value* lookup_leafs(Leafs* leafs, Key key) {
     return NULL;
 }
 
-static Value* lookup_block(Block*, Key);
 static Value* lookup_block(Block* block, Key key) {
     u32 i = 0;
     for (; i < block->len_nodes; ++i) {
@@ -342,8 +341,7 @@ static void print_leafs(Leafs* leafs, u32 padding) {
 
 #define INDENT 3
 
-void print_block(Block*, u32);
-void print_block(Block* block, u32 padding) {
+static void print_block(Block* block, u32 padding) {
     if (!block) {
         return;
     }
@@ -375,8 +373,7 @@ void print_block(Block* block, u32 padding) {
     }
 }
 
-void print_walk_leafs(Block*);
-void print_walk_leafs(Block* block) {
+static void print_walk_leafs(Block* block) {
     switch (block->child_tag) {
     case CHILD_LEAFS: {
         Leafs* leafs = block->children[0].as_leafs;
