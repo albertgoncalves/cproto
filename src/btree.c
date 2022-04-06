@@ -47,6 +47,7 @@ typedef const char* Value;
 #define CAP_NODES       4
 #define CAP_CHILDREN    (CAP_NODES + 1)
 
+STATIC_ASSERT(1 < CAP_LEAF_BUFFER);
 STATIC_ASSERT(2 < CAP_NODES);
 
 #define CAP_BLOCKS (1 << 4)
@@ -179,6 +180,15 @@ static Key move_half_block(Block* left, Block* right) {
     }
 }
 
+// NOTE: The thing that held me up for the longest time was how to push a split
+// back *up* through the tree, after having descended down to the lowest level.
+// The trick, at least in this implementation, is the insert elements into the
+// children while control is at the parent level. If, after inserting a new
+// item, the child is now full, that child block is immediately split. This
+// structure of inserting and splitting from the parent layer allows us to, in
+// effect, propagate a split up through the tree. The draw-back here is wasted
+// space (since a given block is always split immediately after becoming full),
+// but with the benefit of greatly simplified traversal.
 static Block* insert_block(Memory* memory,
                            Block*  block,
                            Key     key,
@@ -224,6 +234,10 @@ static Block* insert_block(Memory* memory,
                 insert_block(memory, block->children[i].as_block, key, value);
             Block* left = block->children[i].as_block;
             if (left->len_nodes == CAP_NODES) {
+                // NOTE: Only the root node grows vertically; this way the tree
+                // never becomes unbalanced. Instead, here we only grow
+                // horizontally; since blocks are never allowed to remain full,
+                // we always have space to expand into.
                 Block* right = alloc_block(memory);
                 right->child_tag = left->child_tag;
                 Key new_key = move_half_block(left, right);
@@ -258,6 +272,9 @@ static Block* insert_block(Memory* memory,
 static Block* insert_tree(Memory* memory, Block* left, Key key, Value value) {
     left = insert_block(memory, left, key, value);
     if (left->len_nodes == CAP_NODES) {
+        // NOTE: If the root node is full, let's grow the tree vertically to
+        // make some more room. Since only the root is allowed to grow
+        // vertically, the tree will always remain height-balanced.
         Block* right = alloc_block(memory);
         Block* parent = alloc_block(memory);
         parent->child_tag = CHILD_BLOCK;
