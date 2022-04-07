@@ -5,8 +5,7 @@
 typedef uint32_t u32;
 typedef int32_t  i32;
 
-u32 ackermann(u32, u32);
-u32 ackermann(u32 m, u32 n) {
+static u32 ackermann(u32 m, u32 n) {
     if (m == 0) {
         return n + 1;
     } else if (n == 0) {

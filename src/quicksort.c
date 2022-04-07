@@ -28,8 +28,7 @@ static i32 partition(u8* array, i32 low, i32 high) {
 
 #undef SWAP
 
-void quicksort(u8*, i32, i32);
-void quicksort(u8* array, i32 low, i32 high) {
+static void quicksort(u8* array, i32 low, i32 high) {
     if (low < high) {
         i32 i = partition(array, low, high);
         if (i != 0) {

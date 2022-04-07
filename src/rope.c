@@ -83,8 +83,7 @@ static Rope* concat(Memory* memory, Rope* left, Rope* right) {
     return rope;
 }
 
-Rope* new_(Memory*, const char*, u8, u8);
-Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
+static Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
     if (i == j) {
         return NULL;
     }
@@ -102,8 +101,7 @@ Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
                   new_(memory, string, m, j));
 }
 
-Pair _split(Memory*, Rope*, i8);
-Pair _split(Memory* memory, Rope* rope, i8 i) {
+static Pair _split(Memory* memory, Rope* rope, i8 i) {
     Pair pair = {0};
     switch (rope->type) {
     case LEAF: {
@@ -137,8 +135,7 @@ static Rope* insert(Memory* memory, Rope* a, Rope* b, i8 i) {
     return concat(memory, concat(memory, pair.left, b), pair.right);
 }
 
-void free_(Memory*, Rope*);
-void free_(Memory* memory, Rope* rope) {
+static void free_(Memory* memory, Rope* rope) {
     switch (rope->type) {
     case LEAF: {
         dealloc(memory, rope);
@@ -175,8 +172,7 @@ static Rope* delete_(Memory* memory, Rope* rope, i8 i, i8 j) {
     return left;
 }
 
-Rope* balance(Memory*, Rope*);
-Rope* balance(Memory* memory, Rope* rope) {
+static Rope* balance(Memory* memory, Rope* rope) {
     switch (rope->type) {
     case LEAF: {
         break;
@@ -198,8 +194,7 @@ Rope* balance(Memory* memory, Rope* rope) {
     return rope;
 }
 
-char ping(Rope*, i8);
-char ping(Rope* rope, i8 i) {
+static char ping(Rope* rope, i8 i) {
     char value = '\0';
     switch (rope->type) {
     case LEAF: {
@@ -219,8 +214,7 @@ char ping(Rope* rope, i8 i) {
     return value;
 }
 
-void _print_string(Rope*);
-void _print_string(Rope* rope) {
+static void _print_string(Rope* rope) {
     switch (rope->type) {
     case LEAF: {
         printf("%c", rope->items.value);
@@ -240,8 +234,7 @@ static void indent(u8 n) {
     }
 }
 
-void _print_rope(Rope*, u8);
-void _print_rope(Rope* rope, u8 n) {
+static void _print_rope(Rope* rope, u8 n) {
     switch (rope->type) {
     case LEAF: {
         indent(n);

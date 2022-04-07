@@ -46,9 +46,7 @@ static void advance_token(void) {
     } while (isspace(TOKEN));
 }
 
-void F(void);
 void S(void);
-void T(void);
 void E(void);
 
 #define PRINT_ENTER_LEAVE(x, block) \
@@ -58,7 +56,7 @@ void E(void);
         print_leave(x);             \
     }
 
-void F(void) {
+static void F(void) {
     PRINT_ENTER_LEAVE('F', {
         if (isalpha(TOKEN)) {
             advance_token();
@@ -76,7 +74,7 @@ void F(void) {
     });
 }
 
-void T(void) {
+static void T(void) {
     PRINT_ENTER_LEAVE('T', {
         S();
         while ((TOKEN == '*') || (TOKEN == '/')) {

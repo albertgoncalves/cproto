@@ -117,8 +117,7 @@ static void drop(Heap* heap, u8 key) {
     }
 }
 
-Bool check(Heap*, u8);
-Bool check(Heap* heap, u8 i) {
+static Bool check(Heap* heap, u8 i) {
     if (heap->len_nodes <= i) {
         return TRUE;
     }

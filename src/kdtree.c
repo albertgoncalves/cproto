@@ -121,8 +121,7 @@ QUICKSORT(quicksort_x, x)
 QUICKSORT(quicksort_y, y)
 QUICKSORT(quicksort_z, z)
 
-Node* make_tree(Memory*, i32, i32, Dim3);
-Node* make_tree(Memory* memory, i32 l, i32 r, Dim3 dim) {
+static Node* make_tree(Memory* memory, i32 l, i32 r, Dim3 dim) {
     EXIT_IF(r < l);
     if (l == r) {
         Node* node = alloc_node(memory);
@@ -169,8 +168,7 @@ static void show_node(const Node* node) {
            (f64)node->point._z);
 }
 
-void show_tree(const Node*, u32);
-void show_tree(const Node* node, u32 n) {
+static void show_tree(const Node* node, u32 n) {
     if (!node) {
         return;
     }
@@ -210,8 +208,9 @@ static f32 distance_squared(Vec3 a, Vec3 b) {
         }                                                               \
     }
 
-void show_within_radius(const Node*, Vec3, f32);
-void show_within_radius(const Node* node, Vec3 point, f32 radius_squared) {
+static void show_within_radius(const Node* node,
+                               Vec3        point,
+                               f32         radius_squared) {
     if (!node) {
         return;
     }

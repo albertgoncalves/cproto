@@ -5,9 +5,7 @@
 typedef uint8_t u8;
 typedef int8_t  i8;
 
-void merge_sort(i8*, i8*, i8*, u8, u8);
-
-void merge_sort(i8* array, i8* a, i8* b, u8 l, u8 r) {
+static void merge_sort(i8* array, i8* a, i8* b, u8 l, u8 r) {
     if (l < r) {
         u8 m = (u8)(l + ((r - l) / (u8)2u));
         merge_sort(array, a, b, l, m);
