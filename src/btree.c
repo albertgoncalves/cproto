@@ -130,10 +130,6 @@ static Block* new_tree(Memory* memory) {
 
 static void insert_leafs(Leafs* leafs, Key key, Value value) {
     EXIT_IF(CAP_LEAF_BUFFER <= leafs->len);
-    if (leafs->len == 0) {
-        leafs->buffer[leafs->len++] = (Leaf){key, value};
-        return;
-    }
     u32 i = 0;
     for (; i < leafs->len; ++i) {
         if (key < leafs->buffer[i].key) {
