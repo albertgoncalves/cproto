@@ -163,6 +163,7 @@ static Key move_half_leafs(Leafs* left, Leafs* right) {
 static Key move_half_block(Block* left, Block* right) {
     EXIT_IF(left->len_nodes != CAP_NODES);
     EXIT_IF(right->len_nodes != 0);
+    right->child_tag = left->child_tag;
     {
         u32 i = (CAP_NODES / 2) + 1;
         u32 j = 0;
@@ -231,9 +232,8 @@ static Block* insert_block(Memory* memory,
         // blocks are never allowed to remain full, we always have space to
         // expand into.
         Block* right = alloc_block(memory);
-        right->child_tag = left->child_tag;
-        Key split_key = move_half_block(left, right);
-        u32 j = 0;
+        Key    split_key = move_half_block(left, right);
+        u32    j = 0;
         for (; j < block->len_nodes; ++j) {
             if (split_key < block->nodes[j]) {
                 break;
@@ -270,7 +270,6 @@ static Block* insert_tree(Memory* memory, Block* left, Key key, Value value) {
     Block* right = alloc_block(memory);
     Block* parent = alloc_block(memory);
     parent->child_tag = CHILD_BLOCK;
-    right->child_tag = left->child_tag;
     parent->nodes[0] = move_half_block(left, right);
     ++parent->len_nodes;
     parent->children[0].as_block = left;
