@@ -210,47 +210,49 @@ static Block* insert_block(Memory* memory,
     switch (block->child_tag) {
     case CHILD_LEAFS: {
         insert_leafs(block->children[i].as_leafs, key, value);
-        if (block->children[i].as_leafs->len == CAP_LEAF_BUFFER) {
-            for (u32 j = block->len_nodes; i < j; --j) {
-                block->nodes[j] = block->nodes[j - 1];
-                block->children[j + 1] = block->children[j];
-            }
-            block->children[i + 1].as_leafs = alloc_leafs(memory);
-            block->nodes[i] = move_half_leafs(block->children[i].as_leafs,
-                                              block->children[i + 1].as_leafs);
-            ++block->len_nodes;
+        if (block->children[i].as_leafs->len < CAP_LEAF_BUFFER) {
+            return block;
         }
+        for (u32 j = block->len_nodes; i < j; --j) {
+            block->nodes[j] = block->nodes[j - 1];
+            block->children[j + 1] = block->children[j];
+        }
+        block->children[i + 1].as_leafs = alloc_leafs(memory);
+        block->nodes[i] = move_half_leafs(block->children[i].as_leafs,
+                                          block->children[i + 1].as_leafs);
+        ++block->len_nodes;
         break;
     }
     case CHILD_BLOCK: {
         block->children[i].as_block =
             insert_block(memory, block->children[i].as_block, key, value);
         Block* left = block->children[i].as_block;
-        if (left->len_nodes == CAP_NODES) {
-            // NOTE: Only the root node grows vertically; this way the tree
-            // never becomes unbalanced. Instead, here we only grow
-            // horizontally; since blocks are never allowed to remain full,
-            // we always have space to expand into.
-            Block* right = alloc_block(memory);
-            right->child_tag = left->child_tag;
-            Key split_key = move_half_block(left, right);
-            u32 j = 0;
-            for (; j < block->len_nodes; ++j) {
-                if (split_key < block->nodes[j]) {
-                    break;
-                }
-            }
-            for (u32 k = block->len_nodes; j < k; --k) {
-                block->nodes[k] = block->nodes[k - 1];
-            }
-            for (u32 k = block->len_nodes + 1; j < k; --k) {
-                block->children[k] = block->children[k - 1];
-            }
-            ++block->len_nodes;
-            block->nodes[j] = split_key;
-            block->children[j].as_block = left;
-            block->children[j + 1].as_block = right;
+        if (left->len_nodes < CAP_NODES) {
+            return block;
         }
+        // NOTE: Only the root node grows vertically; this way the tree never
+        // becomes unbalanced. Instead, here we only grow horizontally; since
+        // blocks are never allowed to remain full, we always have space to
+        // expand into.
+        Block* right = alloc_block(memory);
+        right->child_tag = left->child_tag;
+        Key split_key = move_half_block(left, right);
+        u32 j = 0;
+        for (; j < block->len_nodes; ++j) {
+            if (split_key < block->nodes[j]) {
+                break;
+            }
+        }
+        for (u32 k = block->len_nodes; j < k; --k) {
+            block->nodes[k] = block->nodes[k - 1];
+        }
+        for (u32 k = block->len_nodes + 1; j < k; --k) {
+            block->children[k] = block->children[k - 1];
+        }
+        ++block->len_nodes;
+        block->nodes[j] = split_key;
+        block->children[j].as_block = left;
+        block->children[j + 1].as_block = right;
         break;
     }
     case CHILD_UNSET:
@@ -263,21 +265,21 @@ static Block* insert_block(Memory* memory,
 
 static Block* insert_tree(Memory* memory, Block* left, Key key, Value value) {
     left = insert_block(memory, left, key, value);
-    if (left->len_nodes == CAP_NODES) {
-        // NOTE: If the root node is full, let's grow the tree vertically to
-        // make some more room. Since only the root is allowed to grow
-        // vertically, the tree will always remain height-balanced.
-        Block* right = alloc_block(memory);
-        Block* parent = alloc_block(memory);
-        parent->child_tag = CHILD_BLOCK;
-        right->child_tag = left->child_tag;
-        parent->nodes[0] = move_half_block(left, right);
-        ++parent->len_nodes;
-        parent->children[0].as_block = left;
-        parent->children[1].as_block = right;
-        return parent;
+    if (left->len_nodes < CAP_NODES) {
+        return left;
     }
-    return left;
+    // NOTE: If the root node is full, let's grow the tree vertically to make
+    // some more room. Since only the root is allowed to grow vertically, the
+    // tree will always remain height-balanced.
+    Block* right = alloc_block(memory);
+    Block* parent = alloc_block(memory);
+    parent->child_tag = CHILD_BLOCK;
+    right->child_tag = left->child_tag;
+    parent->nodes[0] = move_half_block(left, right);
+    ++parent->len_nodes;
+    parent->children[0].as_block = left;
+    parent->children[1].as_block = right;
+    return parent;
 }
 
 static const Value* lookup_leafs(const Leafs* leafs, Key key) {
