@@ -149,6 +149,8 @@ static void insert_leafs(Leafs* leafs, Key key, Value value) {
 }
 
 static Key move_half_leafs(Leafs* left, Leafs* right) {
+    EXIT_IF(left->len != CAP_LEAF_BUFFER);
+    EXIT_IF(right->len != 0);
     u32 i = CAP_LEAF_BUFFER / 2;
     u32 j = 0;
     for (; i < CAP_LEAF_BUFFER;) {
@@ -163,6 +165,8 @@ static Key move_half_leafs(Leafs* left, Leafs* right) {
 }
 
 static Key move_half_block(Block* left, Block* right) {
+    EXIT_IF(left->len_nodes != CAP_NODES);
+    EXIT_IF(right->len_nodes != 0);
     {
         u32 i = (CAP_NODES / 2) + 1;
         u32 j = 0;
