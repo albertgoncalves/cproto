@@ -156,7 +156,9 @@ static Key move_half_leafs(Leafs* left, Leafs* right) {
         --left->len;
         ++right->len;
     }
+    Leafs* left_next = left->next;
     left->next = right;
+    right->next = left_next;
     return right->buffer[0].key;
 }
 
@@ -210,10 +212,8 @@ static Block* insert_block(Memory* memory,
                 block->children[j + 1] = block->children[j];
             }
             block->children[i + 1].as_leafs = alloc_leafs(memory);
-            Leafs* left_next = block->children[i].as_leafs->next;
             block->nodes[i] = move_half_leafs(block->children[i].as_leafs,
                                               block->children[i + 1].as_leafs);
-            block->children[i + 1].as_leafs->next = left_next;
             ++block->len_nodes;
         }
         break;
