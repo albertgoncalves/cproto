@@ -289,7 +289,7 @@ static Block* insert_tree(Memory* memory, Block* left, Key key, Value value) {
     return left;
 }
 
-static Value* lookup_leafs(Leafs* leafs, Key key) {
+static const Value* lookup_leafs(const Leafs* leafs, Key key) {
     for (u32 i = 0; i < leafs->len; ++i) {
         if (key == leafs->buffer[i].key) {
             return &leafs->buffer[i].value;
@@ -301,7 +301,7 @@ static Value* lookup_leafs(Leafs* leafs, Key key) {
     return NULL;
 }
 
-static Value* lookup_block(Block* block, Key key) {
+static const Value* lookup_block(const Block* block, Key key) {
     u32 i = 0;
     for (; i < block->len_nodes; ++i) {
         if (key < block->nodes[i]) {
@@ -328,7 +328,7 @@ static void print_padding(u32 padding) {
     }
 }
 
-static void print_leafs(Leafs* leafs, u32 padding) {
+static void print_leafs(const Leafs* leafs, u32 padding) {
     if (!leafs) {
         return;
     }
@@ -342,7 +342,7 @@ static void print_leafs(Leafs* leafs, u32 padding) {
 
 #define INDENT 4
 
-static void print_block(Block* block, u32 padding) {
+static void print_block(const Block* block, u32 padding) {
     if (!block) {
         return;
     }
@@ -374,7 +374,7 @@ static void print_block(Block* block, u32 padding) {
     }
 }
 
-static void print_walk_leafs(Block* block) {
+static void print_walk_leafs(const Block* block) {
     switch (block->child_tag) {
     case CHILD_LEAFS: {
         Leafs* leafs = block->children[0].as_leafs;
