@@ -317,9 +317,7 @@ static void print_padding(u32 padding) {
 }
 
 static void print_leafs(const Leafs* leafs, u32 padding) {
-    if (!leafs) {
-        return;
-    }
+    EXIT_IF(!leafs);
     for (u32 i = 0; i < leafs->len; ++i) {
         print_padding(padding);
         printf(SHOW_KEY_VALUE "\n",
@@ -331,12 +329,13 @@ static void print_leafs(const Leafs* leafs, u32 padding) {
 #define INDENT 4
 
 static void print_block(const Block* block, u32 padding) {
-    if (!block) {
-        return;
-    }
+    EXIT_IF(!block);
     switch (block->child_tag) {
     case CHILD_LEAFS: {
         for (u32 i = 0;; ++i) {
+            if (!block->children[i].as_leafs) {
+                return;
+            }
             print_leafs(block->children[i].as_leafs, padding + INDENT);
             if (block->len_nodes <= i) {
                 return;
@@ -347,6 +346,9 @@ static void print_block(const Block* block, u32 padding) {
     }
     case CHILD_BLOCK: {
         for (u32 i = 0;; ++i) {
+            if (!block->children[i].as_block) {
+                return;
+            }
             print_block(block->children[i].as_block, padding + INDENT);
             if (block->len_nodes <= i) {
                 return;
