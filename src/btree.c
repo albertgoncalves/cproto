@@ -40,8 +40,9 @@ typedef enum {
 typedef i32         Key;
 typedef const char* Value;
 
-#define SHOW_KEY   "%3d"
-#define SHOW_VALUE "\" %2s \""
+#define SHOW_KEY       "%3d"
+#define SHOW_VALUE     "\"%s\""
+#define SHOW_KEY_VALUE SHOW_KEY ": " SHOW_VALUE
 
 #define CAP_LEAF_BUFFER 5
 #define CAP_NODES       4
@@ -333,13 +334,13 @@ static void print_leafs(Leafs* leafs, u32 padding) {
     }
     for (u32 i = 0; i < leafs->len; ++i) {
         print_padding(padding);
-        printf(SHOW_KEY " => " SHOW_VALUE "\n",
+        printf(SHOW_KEY_VALUE "\n",
                leafs->buffer[i].key,
                leafs->buffer[i].value);
     }
 }
 
-#define INDENT 3
+#define INDENT 4
 
 static void print_block(Block* block, u32 padding) {
     if (!block) {
@@ -378,13 +379,18 @@ static void print_walk_leafs(Block* block) {
     case CHILD_LEAFS: {
         Leafs* leafs = block->children[0].as_leafs;
         for (;;) {
-            printf("  [ ");
-            for (u32 i = 0; i < leafs->len; ++i) {
-                printf(SHOW_KEY " => " SHOW_VALUE " ",
+            printf(" { ");
+            for (u32 i = 0;;) {
+                printf(SHOW_KEY_VALUE,
                        leafs->buffer[i].key,
                        leafs->buffer[i].value);
+                ++i;
+                if (leafs->len <= i) {
+                    break;
+                }
+                printf(", ");
             }
-            printf("]\n");
+            printf(" }\n");
             if (!leafs->next) {
                 return;
             }
@@ -453,14 +459,14 @@ i32 main(void) {
         printf("\n");
         print_walk_leafs(tree);
         printf("\n");
-#define LOOKUP(key)                                                    \
-    {                                                                  \
-        Value* value = lookup_block(tree, key);                        \
-        if (!value) {                                                  \
-            printf("  " SHOW_KEY " => _\n", key);                      \
-        } else {                                                       \
-            printf("  " SHOW_KEY " => " SHOW_VALUE "\n", key, *value); \
-        }                                                              \
+#define LOOKUP(key)                                        \
+    {                                                      \
+        const Value* value = lookup_block(tree, key);      \
+        if (!value) {                                      \
+            printf("  " SHOW_KEY ": _\n", key);            \
+        } else {                                           \
+            printf("  " SHOW_KEY_VALUE "\n", key, *value); \
+        }                                                  \
     }
         LOOKUP(31);
         LOOKUP(32);
