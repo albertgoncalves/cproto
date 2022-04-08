@@ -229,10 +229,10 @@ static Block* insert_block(Memory* memory,
             // we always have space to expand into.
             Block* right = alloc_block(memory);
             right->child_tag = left->child_tag;
-            Key new_key = move_half_block(left, right);
+            Key split_key = move_half_block(left, right);
             u32 j = 0;
             for (; j < block->len_nodes; ++j) {
-                if (new_key < block->nodes[j]) {
+                if (split_key < block->nodes[j]) {
                     break;
                 }
             }
@@ -243,7 +243,7 @@ static Block* insert_block(Memory* memory,
                 block->children[k] = block->children[k - 1];
             }
             ++block->len_nodes;
-            block->nodes[j] = new_key;
+            block->nodes[j] = split_key;
             block->children[j].as_block = left;
             block->children[j + 1].as_block = right;
         }
