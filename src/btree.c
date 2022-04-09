@@ -223,14 +223,14 @@ static Block* insert_block(Memory* memory,
     case CHILD_BLOCK: {
         block->children[i].as_block =
             insert_block(memory, block->children[i].as_block, key, value);
-        Block* left = block->children[i].as_block;
-        if (left->len_nodes < CAP_NODES) {
+        if (block->children[i].as_block->len_nodes < CAP_NODES) {
             return block;
         }
         // NOTE: Only the root node grows vertically; this way the tree never
         // becomes unbalanced. Instead, here we only grow horizontally; since
         // blocks are never allowed to remain full, we always have space to
         // expand into.
+        Block* left = block->children[i].as_block;
         Block* right = alloc_block(memory);
         Key    split_key = move_half_block(left, right);
         u32    j = 0;
