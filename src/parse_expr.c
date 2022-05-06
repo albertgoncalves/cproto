@@ -84,6 +84,21 @@ static AstExpr* alloc_expr(void) {
     return &NODES[LEN_NODES++];
 }
 
+static AstExpr* alloc_expr_ident(String string) {
+    AstExpr* expr = alloc_expr();
+    expr->tag = AST_EXPR_IDENT;
+    expr->body.as_string = string;
+    return expr;
+}
+
+static AstExpr* alloc_expr_call(AstExpr* a, AstExpr* b) {
+    AstExpr* expr = alloc_expr();
+    expr->tag = AST_EXPR_CALL;
+    expr->body.as_exprs[0] = a;
+    expr->body.as_exprs[1] = b;
+    return expr;
+}
+
 static void print_string(String string) {
     printf("%.*s", string.len, string.buffer);
 }
@@ -147,25 +162,23 @@ static AstExpr* parse_fn(Token** tokens, u32 depth) {
 }
 
 AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
-    AstExpr* left;
+    AstExpr* expr;
     switch ((*tokens)->tag) {
     case TOKEN_LPAREN: {
         ++(*tokens);
-        left = parse_expr(tokens, 0, depth + 1);
+        expr = parse_expr(tokens, 0, depth + 1);
         EXIT_IF((*tokens)->tag != TOKEN_RPAREN);
         ++(*tokens);
         break;
     }
     case TOKEN_IDENT: {
-        left = alloc_expr();
-        left->tag = AST_EXPR_IDENT;
-        left->body.as_string = (*tokens)->body.as_string;
+        expr = alloc_expr_ident((*tokens)->body.as_string);
         ++(*tokens);
         break;
     }
     case TOKEN_BACKSLASH: {
         ++(*tokens);
-        left = parse_fn(tokens, depth);
+        expr = parse_fn(tokens, depth);
         break;
     }
     case TOKEN_END:
@@ -179,76 +192,55 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
     for (;;) {
         switch ((*tokens)->tag) {
         case TOKEN_END: {
-            return left;
+            return expr;
         }
         case TOKEN_ADD: {
 #define BINDING_LEFT  1
 #define BINDING_RIGHT 2
             if (BINDING_LEFT < binding) {
-                return left;
+                return expr;
             }
             ++(*tokens);
-
-            AstExpr* call0 = alloc_expr();
-            call0->tag = AST_EXPR_CALL;
-            call0->body.as_exprs[0] = alloc_expr();
-            call0->body.as_exprs[0]->tag = AST_EXPR_IDENT;
-            call0->body.as_exprs[0]->body.as_string = STRING("+");
-            call0->body.as_exprs[1] = left;
-
-            AstExpr* call1 = alloc_expr();
-            call1->tag = AST_EXPR_CALL;
-            call1->body.as_exprs[0] = call0;
-            call1->body.as_exprs[1] = parse_expr(tokens, BINDING_RIGHT, depth);
+            expr = alloc_expr_call(
+                alloc_expr_call(alloc_expr_ident(STRING("+")), expr),
+                parse_expr(tokens, BINDING_RIGHT, depth));
 #undef BINDING_LEFT
 #undef BINDING_RIGHT
-            left = call1;
             break;
         }
         case TOKEN_IDENT: {
 #define BINDING_LEFT  3
 #define BINDING_RIGHT 4
             if (BINDING_LEFT < binding) {
-                return left;
+                return expr;
             }
-            AstExpr* call = alloc_expr();
-            call->tag = AST_EXPR_CALL;
-            call->body.as_exprs[0] = left;
-            call->body.as_exprs[1] = parse_expr(tokens, BINDING_RIGHT, depth);
-            left = call;
+            expr = alloc_expr_call(expr,
+                                   parse_expr(tokens, BINDING_RIGHT, depth));
             break;
         }
         case TOKEN_LPAREN: {
             ++(*tokens);
             if (BINDING_LEFT < binding) {
-                return left;
+                return expr;
             }
-            AstExpr* call = alloc_expr();
-            call->tag = AST_EXPR_CALL;
-            call->body.as_exprs[0] = left;
-            call->body.as_exprs[1] = parse_expr(tokens, 0, depth + 1);
+            expr = alloc_expr_call(expr, parse_expr(tokens, 0, depth + 1));
             EXIT_IF((*tokens)->tag != TOKEN_RPAREN);
             ++(*tokens);
-            left = call;
             break;
         }
         case TOKEN_BACKSLASH: {
             if (BINDING_LEFT < binding) {
-                return left;
+                return expr;
             }
             ++(*tokens);
-            AstExpr* call = alloc_expr();
-            call->tag = AST_EXPR_CALL;
-            call->body.as_exprs[0] = left;
-            call->body.as_exprs[1] = parse_fn(tokens, depth);
+            expr = alloc_expr_call(expr, parse_fn(tokens, depth));
 #undef BINDING_LEFT
 #undef BINDING_RIGHT
-            left = call;
             break;
         }
         case TOKEN_RPAREN: {
             EXIT_IF(depth == 0);
-            return left;
+            return expr;
         }
         case TOKEN_ARROW:
         default: {
