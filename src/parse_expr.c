@@ -204,9 +204,9 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             expr = alloc_expr_call(
                 alloc_expr_call(alloc_expr_ident(STRING("+")), expr),
                 parse_expr(tokens, BINDING_RIGHT, depth));
+            break;
 #undef BINDING_LEFT
 #undef BINDING_RIGHT
-            break;
         }
         case TOKEN_IDENT: {
 #define BINDING_LEFT  3
@@ -234,9 +234,9 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             }
             ++(*tokens);
             expr = alloc_expr_call(expr, parse_fn(tokens, depth));
+            break;
 #undef BINDING_LEFT
 #undef BINDING_RIGHT
-            break;
         }
         case TOKEN_RPAREN: {
             EXIT_IF(depth == 0);
