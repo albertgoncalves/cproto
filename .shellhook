@@ -32,7 +32,6 @@ export FLAGS=(
     -Wno-covered-switch-default
     -Wno-declaration-after-statement
     -Wno-extra-semi-stmt
-    -Wno-macro-redefined
     -Wno-padded
     -Wno-reserved-identifier
     -Wno-vla

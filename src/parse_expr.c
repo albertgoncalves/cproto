@@ -183,7 +183,7 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
         }
         case TOKEN_ADD: {
 #define BINDING_LEFT  1
-#define BENDING_RIGHT 2
+#define BINDING_RIGHT 2
             if (BINDING_LEFT < binding) {
                 return left;
             }
@@ -199,22 +199,22 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             AstExpr* call1 = alloc_expr();
             call1->tag = AST_EXPR_CALL;
             call1->body.as_exprs[0] = call0;
-            call1->body.as_exprs[1] = parse_expr(tokens, BENDING_RIGHT, depth);
+            call1->body.as_exprs[1] = parse_expr(tokens, BINDING_RIGHT, depth);
 #undef BINDING_LEFT
-#undef BINDIND_RIGHT
+#undef BINDING_RIGHT
             left = call1;
             break;
         }
         case TOKEN_IDENT: {
 #define BINDING_LEFT  3
-#define BENDING_RIGHT 4
+#define BINDING_RIGHT 4
             if (BINDING_LEFT < binding) {
                 return left;
             }
             AstExpr* call = alloc_expr();
             call->tag = AST_EXPR_CALL;
             call->body.as_exprs[0] = left;
-            call->body.as_exprs[1] = parse_expr(tokens, BENDING_RIGHT, depth);
+            call->body.as_exprs[1] = parse_expr(tokens, BINDING_RIGHT, depth);
             left = call;
             break;
         }
@@ -242,7 +242,7 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             call->body.as_exprs[0] = left;
             call->body.as_exprs[1] = parse_fn(tokens, depth);
 #undef BINDING_LEFT
-#undef BINDIND_RIGHT
+#undef BINDING_RIGHT
             left = call;
             break;
         }
