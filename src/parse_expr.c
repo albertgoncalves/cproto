@@ -65,20 +65,6 @@ struct AstExpr {
     AstExprTag  tag;
 };
 
-static Token TOKENS[] = {
-    // f0 (f1 x y) + f0 z
-    {.body = {.as_string = STRING("f0")}, .tag = TOKEN_IDENT},
-    {.tag = TOKEN_LPAREN},
-    {.body = {.as_string = STRING("f1")}, .tag = TOKEN_IDENT},
-    {.body = {.as_string = STRING("x")}, .tag = TOKEN_IDENT},
-    {.body = {.as_string = STRING("y")}, .tag = TOKEN_IDENT},
-    {.tag = TOKEN_RPAREN},
-    {.tag = TOKEN_ADD},
-    {.body = {.as_string = STRING("f0")}, .tag = TOKEN_IDENT},
-    {.body = {.as_string = STRING("z")}, .tag = TOKEN_IDENT},
-    {.tag = TOKEN_END},
-};
-
 #define CAP_NODES (1 << 5)
 
 static AstExpr NODES[CAP_NODES];
@@ -243,6 +229,20 @@ static void print_expr(AstExpr* expr) {
     }
     }
 }
+
+static Token TOKENS[] = {
+    // f0 (f1 x y) + f0 z
+    {.body = {.as_string = STRING("f0")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_LPAREN},
+    {.body = {.as_string = STRING("f1")}, .tag = TOKEN_IDENT},
+    {.body = {.as_string = STRING("x")}, .tag = TOKEN_IDENT},
+    {.body = {.as_string = STRING("y")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_RPAREN},
+    {.tag = TOKEN_ADD},
+    {.body = {.as_string = STRING("f0")}, .tag = TOKEN_IDENT},
+    {.body = {.as_string = STRING("z")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_END},
+};
 
 i32 main(void) {
     printf("\n"
