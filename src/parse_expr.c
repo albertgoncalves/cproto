@@ -279,7 +279,6 @@ static void print_expr(AstExpr* expr) {
 }
 
 static Token TOKENS[] = {
-    // f0 (f1 x y) + f0 z
     {.body = {.as_string = STRING("f0")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_LPAREN},
     {.body = {.as_string = STRING("f1")}, .tag = TOKEN_IDENT},
