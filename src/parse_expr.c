@@ -162,8 +162,7 @@ static AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             AstExpr* call1 = alloc_expr();
             call1->tag = AST_EXPR_CALL;
             call1->body.as_exprs[0] = call0;
-            call1->body.as_exprs[1] =
-                parse_expr(tokens, BENDING_RIGHT, depth + 1);
+            call1->body.as_exprs[1] = parse_expr(tokens, BENDING_RIGHT, depth);
 #undef BINDING_LEFT
 #undef BINDIND_RIGHT
             left = call1;
@@ -178,8 +177,7 @@ static AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             AstExpr* call = alloc_expr();
             call->tag = AST_EXPR_CALL;
             call->body.as_exprs[0] = left;
-            call->body.as_exprs[1] =
-                parse_expr(tokens, BENDING_RIGHT, depth + 1);
+            call->body.as_exprs[1] = parse_expr(tokens, BENDING_RIGHT, depth);
             left = call;
             break;
         }
