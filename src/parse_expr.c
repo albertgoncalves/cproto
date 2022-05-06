@@ -39,6 +39,8 @@ typedef enum {
     TOKEN_END = 0,
     TOKEN_LPAREN,
     TOKEN_RPAREN,
+    TOKEN_BACKSLASH,
+    TOKEN_ARROW,
     TOKEN_ADD,
     TOKEN_IDENT,
 } TokenTag;
@@ -50,14 +52,21 @@ typedef struct {
 
 typedef struct AstExpr AstExpr;
 
+typedef struct {
+    String   arg;
+    AstExpr* body;
+} AstFn;
+
 typedef union {
     AstExpr* as_exprs[2];
+    AstFn    as_fn;
     String   as_string;
 } AstExprBody;
 
 typedef enum {
     AST_EXPR_CALL,
     AST_EXPR_IDENT,
+    AST_EXPR_FN,
 } AstExprTag;
 
 struct AstExpr {
@@ -93,6 +102,14 @@ static void print_token(Token token) {
         putchar(')');
         break;
     }
+    case TOKEN_BACKSLASH: {
+        putchar('\\');
+        break;
+    }
+    case TOKEN_ARROW: {
+        printf("->");
+        break;
+    }
     case TOKEN_ADD: {
         putchar('+');
         break;
@@ -115,7 +132,21 @@ static void print_tokens(Token* tokens) {
     }
 }
 
-static AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
+AstExpr* parse_expr(Token**, u32, u32);
+
+static AstExpr* parse_fn(Token** tokens, u32 depth) {
+    EXIT_IF((*tokens)->tag != TOKEN_IDENT);
+    AstExpr* expr = alloc_expr();
+    expr->tag = AST_EXPR_FN;
+    expr->body.as_fn.arg = (*tokens)->body.as_string;
+    ++(*tokens);
+    EXIT_IF((*tokens)->tag != TOKEN_ARROW);
+    ++(*tokens);
+    expr->body.as_fn.body = parse_expr(tokens, 0, depth);
+    return expr;
+}
+
+AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
     AstExpr* left;
     switch ((*tokens)->tag) {
     case TOKEN_LPAREN: {
@@ -132,8 +163,14 @@ static AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
         ++(*tokens);
         break;
     }
+    case TOKEN_BACKSLASH: {
+        ++(*tokens);
+        left = parse_fn(tokens, depth);
+        break;
+    }
     case TOKEN_END:
     case TOKEN_RPAREN:
+    case TOKEN_ARROW:
     case TOKEN_ADD:
     default: {
         EXIT();
@@ -192,6 +229,18 @@ static AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             call->body.as_exprs[1] = parse_expr(tokens, 0, depth + 1);
             EXIT_IF((*tokens)->tag != TOKEN_RPAREN);
             ++(*tokens);
+            left = call;
+            break;
+        }
+        case TOKEN_BACKSLASH: {
+            if (BINDING_LEFT < binding) {
+                return left;
+            }
+            ++(*tokens);
+            AstExpr* call = alloc_expr();
+            call->tag = AST_EXPR_CALL;
+            call->body.as_exprs[0] = left;
+            call->body.as_exprs[1] = parse_fn(tokens, depth);
 #undef BINDING_LEFT
 #undef BINDIND_RIGHT
             left = call;
@@ -201,6 +250,7 @@ static AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             EXIT_IF(depth == 0);
             return left;
         }
+        case TOKEN_ARROW:
         default: {
             EXIT();
         }
@@ -222,6 +272,14 @@ static void print_expr(AstExpr* expr) {
         putchar(')');
         break;
     }
+    case AST_EXPR_FN: {
+        printf("(\\");
+        print_string(expr->body.as_fn.arg);
+        printf(" -> ");
+        print_expr(expr->body.as_fn.body);
+        putchar(')');
+        break;
+    }
     default: {
         EXIT();
     }
@@ -237,7 +295,14 @@ static Token TOKENS[] = {
     {.body = {.as_string = STRING("y")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_RPAREN},
     {.tag = TOKEN_ADD},
-    {.body = {.as_string = STRING("f0")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_LPAREN},
+    {.tag = TOKEN_BACKSLASH},
+    {.body = {.as_string = STRING("a")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_ARROW},
+    {.body = {.as_string = STRING("a")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_ADD},
+    {.body = {.as_string = STRING("a")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_RPAREN},
     {.body = {.as_string = STRING("z")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_END},
 };
