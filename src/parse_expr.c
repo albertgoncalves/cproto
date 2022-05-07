@@ -62,15 +62,15 @@ typedef struct {
 typedef struct AstExpr AstExpr;
 
 typedef struct {
-    String   arg;
-    AstExpr* body;
+    String         arg;
+    const AstExpr* body;
 } AstFn;
 
 typedef union {
-    AstExpr* as_exprs[2];
-    AstFn    as_fn;
-    String   as_string;
-    i64      as_i64;
+    const AstExpr* as_exprs[2];
+    AstFn          as_fn;
+    String         as_string;
+    i64            as_i64;
 } AstExprBody;
 
 typedef enum {
@@ -123,7 +123,9 @@ static AstExpr* alloc_expr_i64(Memory* memory, i64 x) {
     return expr;
 }
 
-static AstExpr* alloc_expr_call(Memory* memory, AstExpr* a, AstExpr* b) {
+static AstExpr* alloc_expr_call(Memory*        memory,
+                                const AstExpr* a,
+                                const AstExpr* b) {
     AstExpr* expr = alloc_expr(memory);
     expr->tag = AST_EXPR_CALL;
     expr->body.as_exprs[0] = a;
@@ -184,7 +186,7 @@ static void print_token(Token token) {
     }
 }
 
-static void print_tokens(Token* tokens) {
+static void print_tokens(const Token* tokens) {
     for (u32 i = 0;;) {
         print_token(tokens[i++]);
         if (tokens[i].tag == TOKEN_END) {
@@ -195,9 +197,9 @@ static void print_tokens(Token* tokens) {
     }
 }
 
-AstExpr* parse_expr(Memory*, Token**, u32, u32);
+AstExpr* parse_expr(Memory*, const Token**, u32, u32);
 
-static AstExpr* parse_fn(Memory* memory, Token** tokens, u32 depth) {
+static AstExpr* parse_fn(Memory* memory, const Token** tokens, u32 depth) {
     EXIT_IF((*tokens)->tag != TOKEN_IDENT);
     AstExpr* expr = alloc_expr(memory);
     expr->tag = AST_EXPR_FN;
@@ -223,7 +225,10 @@ static AstExpr* parse_fn(Memory* memory, Token** tokens, u32 depth) {
             parse_expr(memory, tokens, binding_right, depth));    \
     }
 
-AstExpr* parse_expr(Memory* memory, Token** tokens, u32 binding, u32 depth) {
+AstExpr* parse_expr(Memory*       memory,
+                    const Token** tokens,
+                    u32           binding,
+                    u32           depth) {
     AstExpr* expr;
     switch ((*tokens)->tag) {
     case TOKEN_LPAREN: {
@@ -330,7 +335,7 @@ AstExpr* parse_expr(Memory* memory, Token** tokens, u32 binding, u32 depth) {
     }
 }
 
-static void print_expr(AstExpr* expr) {
+static void print_expr(const AstExpr* expr) {
     switch (expr->tag) {
     case AST_EXPR_IDENT: {
         print_string(expr->body.as_string);
@@ -361,7 +366,7 @@ static void print_expr(AstExpr* expr) {
     }
 }
 
-static Token TOKENS[] = {
+static const Token TOKENS[] = {
     {.body = {.as_string = STRING("x")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_ASSIGN},
     {.body = {.as_i64 = -123}, .tag = TOKEN_I64},
@@ -416,7 +421,7 @@ i32 main(void) {
            sizeof(Memory));
     Memory* memory = alloc_memory();
     print_tokens(TOKENS);
-    Token* tokens = TOKENS;
+    const Token* tokens = TOKENS;
     print_expr(parse_expr(memory, &tokens, 0, 0));
     putchar('\n');
     return OK;
