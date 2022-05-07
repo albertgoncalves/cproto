@@ -41,7 +41,10 @@ typedef enum {
     TOKEN_RPAREN,
     TOKEN_BACKSLASH,
     TOKEN_ARROW,
+    TOKEN_SEMICOLON,
+    TOKEN_ASSIGN,
     TOKEN_ADD,
+    TOKEN_MUL,
     TOKEN_IDENT,
 } TokenTag;
 
@@ -74,7 +77,7 @@ struct AstExpr {
     AstExprTag  tag;
 };
 
-#define CAP_NODES (1 << 5)
+#define CAP_NODES (1 << 6)
 
 static AstExpr NODES[CAP_NODES];
 static u32     LEN_NODES = 0;
@@ -125,8 +128,20 @@ static void print_token(Token token) {
         printf("->");
         break;
     }
+    case TOKEN_SEMICOLON: {
+        putchar(';');
+        break;
+    }
+    case TOKEN_ASSIGN: {
+        putchar('=');
+        break;
+    }
     case TOKEN_ADD: {
         putchar('+');
+        break;
+    }
+    case TOKEN_MUL: {
+        putchar('*');
         break;
     }
     case TOKEN_END:
@@ -161,6 +176,17 @@ static AstExpr* parse_fn(Token** tokens, u32 depth) {
     return expr;
 }
 
+#define PARSE_INFIX(op, binding_left, binding_right)             \
+    {                                                            \
+        if (binding_left < binding) {                            \
+            return expr;                                         \
+        }                                                        \
+        ++(*tokens);                                             \
+        expr = alloc_expr_call(                                  \
+            alloc_expr_call(alloc_expr_ident(STRING(op)), expr), \
+            parse_expr(tokens, binding_right, depth));           \
+    }
+
 AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
     AstExpr* expr;
     switch ((*tokens)->tag) {
@@ -181,10 +207,15 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
         expr = parse_fn(tokens, depth);
         break;
     }
+    case TOKEN_SEMICOLON:
+    case TOKEN_ASSIGN: {
+        EXIT();
+    }
     case TOKEN_END:
     case TOKEN_RPAREN:
     case TOKEN_ARROW:
     case TOKEN_ADD:
+    case TOKEN_MUL:
     default: {
         EXIT();
     }
@@ -194,23 +225,9 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
         case TOKEN_END: {
             return expr;
         }
-        case TOKEN_ADD: {
-#define BINDING_LEFT  1
-#define BINDING_RIGHT 2
-            if (BINDING_LEFT < binding) {
-                return expr;
-            }
-            ++(*tokens);
-            expr = alloc_expr_call(
-                alloc_expr_call(alloc_expr_ident(STRING("+")), expr),
-                parse_expr(tokens, BINDING_RIGHT, depth));
-            break;
-#undef BINDING_LEFT
-#undef BINDING_RIGHT
-        }
-        case TOKEN_IDENT: {
-#define BINDING_LEFT  3
-#define BINDING_RIGHT 4
+        case TOKEN_IDENT:
+#define BINDING_LEFT  9
+#define BINDING_RIGHT 10
             if (BINDING_LEFT < binding) {
                 return expr;
             }
@@ -237,6 +254,22 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             break;
 #undef BINDING_LEFT
 #undef BINDING_RIGHT
+        }
+        case TOKEN_ADD: {
+            PARSE_INFIX("+", 5, 6);
+            break;
+        }
+        case TOKEN_MUL: {
+            PARSE_INFIX("*", 7, 8);
+            break;
+        }
+        case TOKEN_ASSIGN: {
+            PARSE_INFIX("=", 4, 3);
+            break;
+        }
+        case TOKEN_SEMICOLON: {
+            PARSE_INFIX(";", 1, 2);
+            break;
         }
         case TOKEN_RPAREN: {
             EXIT_IF(depth == 0);
@@ -290,9 +323,15 @@ static Token TOKENS[] = {
     {.tag = TOKEN_BACKSLASH},
     {.body = {.as_string = STRING("a")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_ARROW},
+    {.body = {.as_string = STRING("b")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_ASSIGN},
     {.body = {.as_string = STRING("a")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_ADD},
     {.body = {.as_string = STRING("a")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_MUL},
+    {.body = {.as_string = STRING("a")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_SEMICOLON},
+    {.body = {.as_string = STRING("b")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_RPAREN},
     {.body = {.as_string = STRING("z")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_END},
