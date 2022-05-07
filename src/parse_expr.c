@@ -4,6 +4,7 @@
 
 typedef uint32_t u32;
 typedef int32_t  i32;
+typedef int64_t  i64;
 
 #define OK    0
 #define ERROR 1
@@ -33,6 +34,7 @@ typedef struct {
 
 typedef union {
     String as_string;
+    i64    as_i64;
 } TokenBody;
 
 typedef enum {
@@ -46,6 +48,7 @@ typedef enum {
     TOKEN_ADD,
     TOKEN_MUL,
     TOKEN_IDENT,
+    TOKEN_I64,
 } TokenTag;
 
 typedef struct {
@@ -64,11 +67,13 @@ typedef union {
     AstExpr* as_exprs[2];
     AstFn    as_fn;
     String   as_string;
+    i64      as_i64;
 } AstExprBody;
 
 typedef enum {
     AST_EXPR_CALL,
     AST_EXPR_IDENT,
+    AST_EXPR_I64,
     AST_EXPR_FN,
 } AstExprTag;
 
@@ -94,6 +99,13 @@ static AstExpr* alloc_expr_ident(String string) {
     return expr;
 }
 
+static AstExpr* alloc_expr_i64(i64 x) {
+    AstExpr* expr = alloc_expr();
+    expr->tag = AST_EXPR_I64;
+    expr->body.as_i64 = x;
+    return expr;
+}
+
 static AstExpr* alloc_expr_call(AstExpr* a, AstExpr* b) {
     AstExpr* expr = alloc_expr();
     expr->tag = AST_EXPR_CALL;
@@ -110,6 +122,10 @@ static void print_token(Token token) {
     switch (token.tag) {
     case TOKEN_IDENT: {
         print_string(token.body.as_string);
+        break;
+    }
+    case TOKEN_I64: {
+        printf("%ld", token.body.as_i64);
         break;
     }
     case TOKEN_LPAREN: {
@@ -202,6 +218,11 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
         ++(*tokens);
         break;
     }
+    case TOKEN_I64: {
+        expr = alloc_expr_i64((*tokens)->body.as_i64);
+        ++(*tokens);
+        break;
+    }
     case TOKEN_BACKSLASH: {
         ++(*tokens);
         expr = parse_fn(tokens, depth);
@@ -226,6 +247,7 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             return expr;
         }
         case TOKEN_IDENT:
+        case TOKEN_I64: {
 #define BINDING_LEFT  9
 #define BINDING_RIGHT 10
             if (BINDING_LEFT < binding) {
@@ -289,6 +311,10 @@ static void print_expr(AstExpr* expr) {
         print_string(expr->body.as_string);
         break;
     }
+    case AST_EXPR_I64: {
+        printf("%ld", expr->body.as_i64);
+        break;
+    }
     case AST_EXPR_CALL: {
         putchar('(');
         print_expr(expr->body.as_exprs[0]);
@@ -312,6 +338,14 @@ static void print_expr(AstExpr* expr) {
 }
 
 static Token TOKENS[] = {
+    {.body = {.as_string = STRING("x")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_ASSIGN},
+    {.body = {.as_i64 = -123}, .tag = TOKEN_I64},
+    {.tag = TOKEN_SEMICOLON},
+    {.body = {.as_string = STRING("y")}, .tag = TOKEN_IDENT},
+    {.tag = TOKEN_ASSIGN},
+    {.body = {.as_i64 = 45678}, .tag = TOKEN_I64},
+    {.tag = TOKEN_SEMICOLON},
     {.body = {.as_string = STRING("f0")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_LPAREN},
     {.body = {.as_string = STRING("f1")}, .tag = TOKEN_IDENT},
