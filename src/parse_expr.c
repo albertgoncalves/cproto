@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 typedef uint32_t u32;
@@ -8,6 +9,8 @@ typedef int64_t  i64;
 
 #define OK    0
 #define ERROR 1
+
+#define CAP_NODES (1 << 6)
 
 #define EXIT()                                              \
     {                                                       \
@@ -82,32 +85,46 @@ struct AstExpr {
     AstExprTag  tag;
 };
 
-#define CAP_NODES (1 << 6)
 
-static AstExpr NODES[CAP_NODES];
-static u32     LEN_NODES = 0;
+typedef struct {
+    AstExpr nodes[CAP_NODES];
+    u32     len_nodes;
+} Memory;
 
-static AstExpr* alloc_expr(void) {
-    EXIT_IF(CAP_NODES <= LEN_NODES);
-    return &NODES[LEN_NODES++];
+static Memory* alloc_memory(void) {
+    void* address = mmap(NULL,
+                         sizeof(Memory),
+                         PROT_READ | PROT_WRITE,
+                         MAP_ANONYMOUS | MAP_PRIVATE,
+                         -1,
+                         0);
+    EXIT_IF(address == MAP_FAILED);
+    Memory* memory = (Memory*)address;
+    memory->len_nodes = 0;
+    return memory;
 }
 
-static AstExpr* alloc_expr_ident(String string) {
-    AstExpr* expr = alloc_expr();
+static AstExpr* alloc_expr(Memory* memory) {
+    EXIT_IF(CAP_NODES <= memory->len_nodes);
+    return &memory->nodes[memory->len_nodes++];
+}
+
+static AstExpr* alloc_expr_ident(Memory* memory, String string) {
+    AstExpr* expr = alloc_expr(memory);
     expr->tag = AST_EXPR_IDENT;
     expr->body.as_string = string;
     return expr;
 }
 
-static AstExpr* alloc_expr_i64(i64 x) {
-    AstExpr* expr = alloc_expr();
+static AstExpr* alloc_expr_i64(Memory* memory, i64 x) {
+    AstExpr* expr = alloc_expr(memory);
     expr->tag = AST_EXPR_I64;
     expr->body.as_i64 = x;
     return expr;
 }
 
-static AstExpr* alloc_expr_call(AstExpr* a, AstExpr* b) {
-    AstExpr* expr = alloc_expr();
+static AstExpr* alloc_expr_call(Memory* memory, AstExpr* a, AstExpr* b) {
+    AstExpr* expr = alloc_expr(memory);
     expr->tag = AST_EXPR_CALL;
     expr->body.as_exprs[0] = a;
     expr->body.as_exprs[1] = b;
@@ -178,54 +195,57 @@ static void print_tokens(Token* tokens) {
     }
 }
 
-AstExpr* parse_expr(Token**, u32, u32);
+AstExpr* parse_expr(Memory*, Token**, u32, u32);
 
-static AstExpr* parse_fn(Token** tokens, u32 depth) {
+static AstExpr* parse_fn(Memory* memory, Token** tokens, u32 depth) {
     EXIT_IF((*tokens)->tag != TOKEN_IDENT);
-    AstExpr* expr = alloc_expr();
+    AstExpr* expr = alloc_expr(memory);
     expr->tag = AST_EXPR_FN;
     expr->body.as_fn.arg = (*tokens)->body.as_string;
     ++(*tokens);
     EXIT_IF((*tokens)->tag != TOKEN_ARROW);
     ++(*tokens);
-    expr->body.as_fn.body = parse_expr(tokens, 0, depth);
+    expr->body.as_fn.body = parse_expr(memory, tokens, 0, depth);
     return expr;
 }
 
-#define PARSE_INFIX(op, binding_left, binding_right)             \
-    {                                                            \
-        if (binding_left < binding) {                            \
-            return expr;                                         \
-        }                                                        \
-        ++(*tokens);                                             \
-        expr = alloc_expr_call(                                  \
-            alloc_expr_call(alloc_expr_ident(STRING(op)), expr), \
-            parse_expr(tokens, binding_right, depth));           \
+#define PARSE_INFIX(op, binding_left, binding_right)              \
+    {                                                             \
+        if (binding_left < binding) {                             \
+            return expr;                                          \
+        }                                                         \
+        ++(*tokens);                                              \
+        expr = alloc_expr_call(                                   \
+            memory,                                               \
+            alloc_expr_call(memory,                               \
+                            alloc_expr_ident(memory, STRING(op)), \
+                            expr),                                \
+            parse_expr(memory, tokens, binding_right, depth));    \
     }
 
-AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
+AstExpr* parse_expr(Memory* memory, Token** tokens, u32 binding, u32 depth) {
     AstExpr* expr;
     switch ((*tokens)->tag) {
     case TOKEN_LPAREN: {
         ++(*tokens);
-        expr = parse_expr(tokens, 0, depth + 1);
+        expr = parse_expr(memory, tokens, 0, depth + 1);
         EXIT_IF((*tokens)->tag != TOKEN_RPAREN);
         ++(*tokens);
         break;
     }
     case TOKEN_IDENT: {
-        expr = alloc_expr_ident((*tokens)->body.as_string);
+        expr = alloc_expr_ident(memory, (*tokens)->body.as_string);
         ++(*tokens);
         break;
     }
     case TOKEN_I64: {
-        expr = alloc_expr_i64((*tokens)->body.as_i64);
+        expr = alloc_expr_i64(memory, (*tokens)->body.as_i64);
         ++(*tokens);
         break;
     }
     case TOKEN_BACKSLASH: {
         ++(*tokens);
-        expr = parse_fn(tokens, depth);
+        expr = parse_fn(memory, tokens, depth);
         break;
     }
     case TOKEN_SEMICOLON:
@@ -253,8 +273,10 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             if (BINDING_LEFT < binding) {
                 return expr;
             }
-            expr = alloc_expr_call(expr,
-                                   parse_expr(tokens, BINDING_RIGHT, depth));
+            expr = alloc_expr_call(
+                memory,
+                expr,
+                parse_expr(memory, tokens, BINDING_RIGHT, depth));
             break;
         }
         case TOKEN_LPAREN: {
@@ -262,7 +284,9 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
             if (BINDING_LEFT < binding) {
                 return expr;
             }
-            expr = alloc_expr_call(expr, parse_expr(tokens, 0, depth + 1));
+            expr = alloc_expr_call(memory,
+                                   expr,
+                                   parse_expr(memory, tokens, 0, depth + 1));
             EXIT_IF((*tokens)->tag != TOKEN_RPAREN);
             ++(*tokens);
             break;
@@ -272,7 +296,8 @@ AstExpr* parse_expr(Token** tokens, u32 binding, u32 depth) {
                 return expr;
             }
             ++(*tokens);
-            expr = alloc_expr_call(expr, parse_fn(tokens, depth));
+            expr =
+                alloc_expr_call(memory, expr, parse_fn(memory, tokens, depth));
             break;
 #undef BINDING_LEFT
 #undef BINDING_RIGHT
@@ -379,6 +404,7 @@ i32 main(void) {
            "sizeof(AstExprBody) : %zu\n"
            "sizeof(AstExprTag)  : %zu\n"
            "sizeof(AstExpr)     : %zu\n"
+           "sizeof(Memory)      : %zu\n"
            "\n",
            sizeof(String),
            sizeof(TokenBody),
@@ -386,10 +412,12 @@ i32 main(void) {
            sizeof(Token),
            sizeof(AstExprBody),
            sizeof(AstExprTag),
-           sizeof(AstExpr));
+           sizeof(AstExpr),
+           sizeof(Memory));
+    Memory* memory = alloc_memory();
     print_tokens(TOKENS);
     Token* tokens = TOKENS;
-    print_expr(parse_expr(&tokens, 0, 0));
+    print_expr(parse_expr(memory, &tokens, 0, 0));
     putchar('\n');
     return OK;
 }
