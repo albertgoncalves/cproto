@@ -253,15 +253,13 @@ AstExpr* parse_expr(Memory*       memory,
         expr = parse_fn(memory, tokens, depth);
         break;
     }
-    case TOKEN_SEMICOLON:
-    case TOKEN_ASSIGN: {
-        EXIT();
-    }
-    case TOKEN_END:
     case TOKEN_RPAREN:
     case TOKEN_ARROW:
+    case TOKEN_SEMICOLON:
+    case TOKEN_ASSIGN:
     case TOKEN_ADD:
     case TOKEN_MUL:
+    case TOKEN_END:
     default: {
         EXIT();
     }
