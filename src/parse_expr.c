@@ -316,11 +316,10 @@ static void print_expr(AstExpr* expr) {
         break;
     }
     case AST_EXPR_CALL: {
-        putchar('(');
         print_expr(expr->body.as_exprs[0]);
-        putchar(' ');
+        putchar('(');
         print_expr(expr->body.as_exprs[1]);
-        putchar(')');
+        printf(")");
         break;
     }
     case AST_EXPR_FN: {
