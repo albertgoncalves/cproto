@@ -347,7 +347,7 @@ static void print_expr(const AstExpr* expr) {
         print_expr(expr->body.as_exprs[0]);
         putchar('(');
         print_expr(expr->body.as_exprs[1]);
-        printf(")");
+        putchar(')');
         break;
     }
     case AST_EXPR_FN: {
