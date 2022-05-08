@@ -28,11 +28,11 @@ typedef int64_t  i64;
     }
 
 #if 0
-    #define TRACE(expr)                                        \
-        {                                                      \
-            printf("%s:%s:%d ", __FILE__, __func__, __LINE__); \
-            print_expr(expr);                                  \
-            putchar('\n');                                     \
+    #define TRACE(expr)                                  \
+        {                                                \
+            printf("\n%s:%d\n    ", __func__, __LINE__); \
+            print_expr(expr);                            \
+            printf("\n");                                \
         }
 #else
     #define TRACE(_) \
@@ -85,7 +85,7 @@ typedef struct AstExpr AstExpr;
 typedef struct {
     String         label;
     const AstExpr* expr;
-} AstFn;
+} AstFn1;
 
 typedef enum {
     INTRIN_SEMICOLON,
@@ -101,19 +101,21 @@ typedef struct {
 
 typedef union {
     const AstExpr* as_exprs[2];
-    AstFn          as_fn;
+    const AstExpr* as_fn0;
+    AstFn1         as_fn1;
     String         as_string;
     i64            as_i64;
     Intrinsic      as_intrinsic;
 } AstExprBody;
 
 typedef enum {
+    AST_EXPR_VOID = 0,
     AST_EXPR_CALL,
     AST_EXPR_IDENT,
     AST_EXPR_I64,
-    AST_EXPR_FN,
+    AST_EXPR_FN0,
+    AST_EXPR_FN1,
     AST_EXPR_INTRIN,
-    AST_EXPR_VOID,
 } AstExprTag;
 
 struct AstExpr {
@@ -338,14 +340,22 @@ const AstExpr* parse_expr(Memory*, const Token**, u32, u32);
 static const AstExpr* parse_fn(Memory*       memory,
                                const Token** tokens,
                                u32           depth) {
+    if ((*tokens)->tag != TOKEN_IDENT) {
+        EXIT_IF((*tokens)->tag != TOKEN_ARROW);
+        AstExpr* expr = alloc_expr(memory);
+        expr->tag = AST_EXPR_FN0;
+        ++(*tokens);
+        expr->body.as_fn0 = parse_expr(memory, tokens, 0, depth);
+        return expr;
+    }
     EXIT_IF((*tokens)->tag != TOKEN_IDENT);
     AstExpr* expr = alloc_expr(memory);
-    expr->tag = AST_EXPR_FN;
-    expr->body.as_fn.label = (*tokens)->body.as_string;
+    expr->tag = AST_EXPR_FN1;
+    expr->body.as_fn1.label = (*tokens)->body.as_string;
     ++(*tokens);
     EXIT_IF((*tokens)->tag != TOKEN_ARROW);
     ++(*tokens);
-    expr->body.as_fn.expr = parse_expr(memory, tokens, 0, depth);
+    expr->body.as_fn1.expr = parse_expr(memory, tokens, 0, depth);
     return expr;
 }
 
@@ -518,11 +528,18 @@ static void print_expr(const AstExpr* expr) {
         putchar(')');
         break;
     }
-    case AST_EXPR_FN: {
-        printf("(\\");
-        print_string(expr->body.as_fn.label);
+    case AST_EXPR_FN0: {
+        printf("(\\_");
         printf(" -> ");
-        print_expr(expr->body.as_fn.expr);
+        print_expr(expr->body.as_fn0);
+        putchar(')');
+        break;
+    }
+    case AST_EXPR_FN1: {
+        printf("(\\");
+        print_string(expr->body.as_fn1.label);
+        printf(" -> ");
+        print_expr(expr->body.as_fn1.expr);
         putchar(')');
         break;
     }
@@ -572,6 +589,7 @@ static Env eval_expr_intrinsic(Memory*        memory,
                                Scope*         scope,
                                Intrinsic      intrinsic,
                                const AstExpr* arg) {
+    TRACE(intrinsic.expr);
     switch (intrinsic.tag) {
     case INTRIN_SEMICOLON: {
         Env env = {
@@ -593,7 +611,7 @@ static Env eval_expr_intrinsic(Memory*        memory,
         }
         return (Env){
             .scope = scope,
-            .expr = alloc_expr_void(memory),
+            .expr = NULL,
         };
     }
     case INTRIN_ADD: {
@@ -614,6 +632,7 @@ static Env eval_expr_call(Memory*        memory,
                           Scope*         scope,
                           const AstExpr* func,
                           const AstExpr* arg) {
+    TRACE(func);
     switch (func->tag) {
     case AST_EXPR_INTRIN: {
         return eval_expr_intrinsic(memory,
@@ -622,21 +641,31 @@ static Env eval_expr_call(Memory*        memory,
                                    arg);
     }
     case AST_EXPR_IDENT: {
-        Var* var = lookup_scope(scope, func->body.as_string);
-        EXIT_IF(!var);
-        return eval_expr_call(memory, var->env.scope, var->env.expr, arg);
+        Env env = eval_expr(memory, (Env){.scope = scope, .expr = func});
+        return eval_expr_call(memory, env.scope, env.expr, arg);
     }
     case AST_EXPR_CALL: {
         Env env = eval_expr_call(memory,
                                  scope,
                                  func->body.as_exprs[0],
                                  func->body.as_exprs[1]);
-        scope = env.scope;
-        func = env.expr;
-        break;
+        return eval_expr_call(memory, env.scope, env.expr, arg);
     }
-    case AST_EXPR_FN: {
-        break;
+    case AST_EXPR_FN0: {
+        scope = push_scope(memory, scope);
+        return eval_expr(memory,
+                         (Env){.scope = scope, .expr = func->body.as_fn0});
+    }
+    case AST_EXPR_FN1: {
+        EXIT_IF(func->tag != AST_EXPR_FN1);
+        scope = push_scope(memory, scope);
+        push_var(memory,
+                 scope,
+                 func->body.as_fn1.label,
+                 (Env){.scope = scope, .expr = arg});
+        return eval_expr(
+            memory,
+            (Env){.scope = scope, .expr = func->body.as_fn1.expr});
     }
     case AST_EXPR_I64:
     case AST_EXPR_VOID:
@@ -644,14 +673,6 @@ static Env eval_expr_call(Memory*        memory,
         EXIT();
     }
     }
-    EXIT_IF(func->tag != AST_EXPR_FN);
-    scope = push_scope(memory, scope);
-    push_var(memory,
-             scope,
-             func->body.as_fn.label,
-             (Env){.scope = scope, .expr = arg});
-    return eval_expr(memory,
-                     (Env){.scope = scope, .expr = func->body.as_fn.expr});
 }
 
 Env eval_expr(Memory* memory, Env env) {
@@ -663,7 +684,8 @@ Env eval_expr(Memory* memory, Env env) {
         return var->env;
     }
     case AST_EXPR_I64:
-    case AST_EXPR_FN:
+    case AST_EXPR_FN0:
+    case AST_EXPR_FN1:
     case AST_EXPR_INTRIN: {
         return env;
     }
@@ -693,7 +715,6 @@ static const Token TOKENS[] = {
     {.tag = TOKEN_ASSIGN},
     {.tag = TOKEN_LPAREN},
     {.tag = TOKEN_BACKSLASH},
-    {.body = {.as_string = STRING("_")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_ARROW},
     {.body = {.as_string = STRING("i")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_ASSIGN},
@@ -703,7 +724,6 @@ static const Token TOKENS[] = {
     {.tag = TOKEN_ASSIGN},
     {.tag = TOKEN_LPAREN},
     {.tag = TOKEN_BACKSLASH},
-    {.body = {.as_string = STRING("_")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_ARROW},
     {.body = {.as_string = STRING("i")}, .tag = TOKEN_IDENT},
     {.tag = TOKEN_ASSIGN},
