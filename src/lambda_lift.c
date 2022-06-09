@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 #define CAP_BUFFER     (1 << 5)
-#define CAP_EXPRS      (1 << 7)
+#define CAP_EXPRS      (1 << 6)
 #define CAP_EXPR_LISTS (1 << 4)
 
 typedef uint32_t u32;
@@ -55,7 +55,6 @@ typedef enum {
     EXPR_FN0,
     EXPR_FN1,
     EXPR_FN2,
-    EXPR_FN3,
     EXPR_CALL0,
     EXPR_CALL1,
     EXPR_CALL2,
@@ -66,19 +65,14 @@ typedef enum {
 } ExprTag;
 
 typedef struct {
-    Str  arg;
-    List exprs;
+    Str   arg;
+    List* exprs;
 } ExprFn1;
 
 typedef struct {
-    Str  args[2];
-    List exprs;
+    Str   args[2];
+    List* exprs;
 } ExprFn2;
-
-typedef struct {
-    Str  args[3];
-    List exprs;
-} ExprFn3;
 
 typedef struct {
     Expr* func;
@@ -110,10 +104,9 @@ typedef struct {
 } ExprUpdate;
 
 typedef union {
-    List       as_fn0;
+    List*      as_fn0;
     ExprFn1    as_fn1;
     ExprFn2    as_fn2;
-    ExprFn3    as_fn3;
     Expr*      as_call0;
     ExprCall1  as_call1;
     ExprCall2  as_call2;
@@ -138,6 +131,27 @@ typedef struct {
     List lists[CAP_EXPR_LISTS];
     u32  len_lists;
 } Memory;
+
+static Expr EXPR_VAR_NEW_SCOPE = {
+    .tag = EXPR_VAR,
+    .body = {.as_str = STR("@newScope")},
+};
+static Expr EXPR_VAR_NEW_SCOPE_FROM = {
+    .tag = EXPR_VAR,
+    .body = {.as_str = STR("@newScopeFrom")},
+};
+static Expr EXPR_VAR_LOOKUP_SCOPE = {
+    .tag = EXPR_VAR,
+    .body = {.as_str = STR("@lookupScope")},
+};
+static Expr EXPR_VAR_INSERT_SCOPE = {
+    .tag = EXPR_VAR,
+    .body = {.as_str = STR("@insertScope")},
+};
+static Expr EXPR_VAR_UPDATE_SCOPE = {
+    .tag = EXPR_VAR,
+    .body = {.as_str = STR("@updateScope")},
+};
 
 static u32 COUNT_SCOPES = 0;
 static u32 COUNT_FUNCS = 0;
@@ -181,41 +195,18 @@ static Expr* alloc_str(Memory* memory, Str str) {
     return expr;
 }
 
-static Expr* alloc_fn0(Memory* memory, List exprs) {
+static Expr* alloc_fn0(Memory* memory, List* exprs) {
     Expr* expr = alloc_expr(memory);
     expr->tag = EXPR_FN0;
     expr->body.as_fn0 = exprs;
     return expr;
 }
 
-static Expr* alloc_fn1(Memory* memory, Str arg, List exprs) {
+static Expr* alloc_fn1(Memory* memory, Str arg, List* exprs) {
     Expr* expr = alloc_expr(memory);
     expr->tag = EXPR_FN1;
     expr->body.as_fn1.arg = arg;
     expr->body.as_fn1.exprs = exprs;
-    return expr;
-}
-
-static Expr* alloc_fn2(Memory* memory, Str arg0, Str arg1, List exprs) {
-    Expr* expr = alloc_expr(memory);
-    expr->tag = EXPR_FN2;
-    expr->body.as_fn2.args[0] = arg0;
-    expr->body.as_fn2.args[1] = arg1;
-    expr->body.as_fn2.exprs = exprs;
-    return expr;
-}
-
-static Expr* alloc_fn3(Memory* memory,
-                       Str     arg0,
-                       Str     arg1,
-                       Str     arg2,
-                       List    exprs) {
-    Expr* expr = alloc_expr(memory);
-    expr->tag = EXPR_FN3;
-    expr->body.as_fn3.args[0] = arg0;
-    expr->body.as_fn3.args[1] = arg1;
-    expr->body.as_fn3.args[2] = arg2;
-    expr->body.as_fn3.exprs = exprs;
     return expr;
 }
 
@@ -243,20 +234,6 @@ static Expr* alloc_call2(Memory* memory, Expr* func, Expr* arg0, Expr* arg1) {
     return expr;
 }
 
-static Expr* alloc_call3(Memory* memory,
-                         Expr*   func,
-                         Expr*   arg0,
-                         Expr*   arg1,
-                         Expr*   arg2) {
-    Expr* expr = alloc_expr(memory);
-    expr->tag = EXPR_CALL3;
-    expr->body.as_call3.func = func;
-    expr->body.as_call3.args[0] = arg0;
-    expr->body.as_call3.args[1] = arg1;
-    expr->body.as_call3.args[2] = arg2;
-    return expr;
-}
-
 static Expr* alloc_assign(Memory* memory, Str var, Expr* expr) {
     Expr* assign = alloc_expr(memory);
     assign->tag = EXPR_ASSIGN;
@@ -279,17 +256,6 @@ static Expr* alloc_pair(Memory* memory, Expr* expr0, Expr* expr1) {
     pair->body.as_pair[0] = expr0;
     pair->body.as_pair[1] = expr1;
     return pair;
-}
-
-static List push_list(Expr* expr, List* exprs) {
-    EXIT_IF(!expr);
-    List list = {0};
-    list.expr = expr;
-    if (exprs) {
-        list.next = exprs;
-        list.last = exprs->last;
-    };
-    return list;
 }
 
 static List* alloc_list(Memory* memory, Expr* expr, List* next) {
@@ -365,7 +331,7 @@ static void print_expr(Expr* expr) {
     }
     case EXPR_FN0: {
         printf("(\\ -> ");
-        print_exprs(&expr->body.as_fn0, ' ');
+        print_exprs(expr->body.as_fn0, ' ');
         putchar(')');
         break;
     }
@@ -373,7 +339,7 @@ static void print_expr(Expr* expr) {
         printf("(\\");
         print_string(expr->body.as_fn1.arg);
         printf(" -> ");
-        print_exprs(&expr->body.as_fn1.exprs, ' ');
+        print_exprs(expr->body.as_fn1.exprs, ' ');
         putchar(')');
         break;
     }
@@ -383,19 +349,7 @@ static void print_expr(Expr* expr) {
         putchar(' ');
         print_string(expr->body.as_fn2.args[1]);
         printf(" -> ");
-        print_exprs(&expr->body.as_fn2.exprs, ' ');
-        putchar(')');
-        break;
-    }
-    case EXPR_FN3: {
-        printf("(\\");
-        print_string(expr->body.as_fn3.args[0]);
-        putchar(' ');
-        print_string(expr->body.as_fn3.args[1]);
-        putchar(' ');
-        print_string(expr->body.as_fn3.args[2]);
-        printf(" -> ");
-        print_exprs(&expr->body.as_fn3.exprs, ' ');
+        print_exprs(expr->body.as_fn2.exprs, ' ');
         putchar(')');
         break;
     }
@@ -535,20 +489,19 @@ static List* get_top_scope(Memory* memory, List* exprs) {
     map_inject_scope(memory, exprs, scope);
     return alloc_list(
         memory,
-        alloc_assign(memory,
-                     scope,
-                     alloc_call0(memory, alloc_var(memory, STR("@newScope")))),
+        alloc_assign(memory, scope, alloc_call0(memory, &EXPR_VAR_NEW_SCOPE)),
         exprs);
 }
 
-static List get_inner_scope(Memory* memory, List* exprs, Str parent_scope) {
+static List* get_inner_scope(Memory* memory, List* exprs, Str parent_scope) {
     Str scope = get_scope_label(memory);
     map_inject_scope(memory, exprs, scope);
-    return push_list(
+    return alloc_list(
+        memory,
         alloc_assign(memory,
                      scope,
                      alloc_call1(memory,
-                                 alloc_var(memory, STR("@newScopeFrom")),
+                                 &EXPR_VAR_NEW_SCOPE_FROM,
                                  alloc_var(memory, parent_scope))),
         exprs);
 }
@@ -560,44 +513,47 @@ Expr* inject_scope(Memory* memory, Expr* expr, Str scope) {
         return expr;
     }
     case EXPR_VAR: {
+        expr->tag = EXPR_STR;
         return alloc_call2(memory,
-                           alloc_var(memory, STR("@lookupScope")),
+                           &EXPR_VAR_LOOKUP_SCOPE,
                            alloc_var(memory, scope),
-                           alloc_str(memory, expr->body.as_str));
+                           expr);
     }
     case EXPR_ASSIGN: {
-        return alloc_call3(
-            memory,
-            alloc_var(memory, STR("@insertScope")),
-            alloc_var(memory, scope),
-            alloc_str(memory, expr->body.as_str),
-            inject_scope(memory, expr->body.as_assign.expr, scope));
+        Expr* arg1 = alloc_str(memory, expr->body.as_assign.var);
+        Expr* arg2 = inject_scope(memory, expr->body.as_assign.expr, scope);
+        expr->tag = EXPR_CALL3;
+        expr->body.as_call3.func = &EXPR_VAR_INSERT_SCOPE;
+        expr->body.as_call3.args[0] = alloc_var(memory, scope);
+        expr->body.as_call3.args[1] = arg1;
+        expr->body.as_call3.args[2] = arg2;
+        return expr;
     }
     case EXPR_UPDATE: {
-        return alloc_call3(
-            memory,
-            alloc_var(memory, STR("@updateScope")),
-            alloc_var(memory, scope),
-            alloc_str(memory, expr->body.as_str),
-            inject_scope(memory, expr->body.as_update.expr, scope));
+        Expr* arg1 = alloc_str(memory, expr->body.as_update.var);
+        Expr* arg2 = inject_scope(memory, expr->body.as_update.expr, scope);
+        expr->tag = EXPR_CALL3;
+        expr->body.as_call3.func = &EXPR_VAR_UPDATE_SCOPE;
+        expr->body.as_call3.args[0] = alloc_var(memory, scope);
+        expr->body.as_call3.args[1] = arg1;
+        expr->body.as_call3.args[2] = arg2;
+        return expr;
     }
     case EXPR_FN0: {
-        return alloc_pair(
-            memory,
-            alloc_var(memory, scope),
-            alloc_fn1(memory,
-                      scope,
-                      get_inner_scope(memory, &expr->body.as_fn0, scope)));
+        expr->tag = EXPR_FN1;
+        expr->body.as_fn1.exprs =
+            get_inner_scope(memory, expr->body.as_fn0, scope);
+        expr->body.as_fn1.arg = scope;
+        return alloc_pair(memory, alloc_var(memory, scope), expr);
     }
     case EXPR_FN1: {
-        return alloc_pair(
-            memory,
-            alloc_var(memory, scope),
-            alloc_fn2(
-                memory,
-                scope,
-                expr->body.as_fn1.arg,
-                get_inner_scope(memory, &expr->body.as_fn1.exprs, scope)));
+        Str arg = expr->body.as_fn1.arg;
+        expr->tag = EXPR_FN2;
+        expr->body.as_fn2.exprs =
+            get_inner_scope(memory, expr->body.as_fn1.exprs, scope);
+        expr->body.as_fn2.args[0] = scope;
+        expr->body.as_fn2.args[1] = arg;
+        return alloc_pair(memory, alloc_var(memory, scope), expr);
     }
     case EXPR_CALL0: {
         expr->body.as_call0 = inject_scope(memory, expr->body.as_call0, scope);
@@ -611,7 +567,6 @@ Expr* inject_scope(Memory* memory, Expr* expr, Str scope) {
         return expr;
     }
     case EXPR_FN2:
-    case EXPR_FN3:
     case EXPR_CALL2:
     case EXPR_CALL3:
     case EXPR_PAIR:
@@ -653,97 +608,71 @@ Expr* extract_func(Memory* memory, List** funcs, Expr* expr) {
     case EXPR_FN0: {
         Str label = get_func_label(memory);
         *funcs = merge_lists(
-            append_list(memory,
-                        *funcs,
-                        alloc_assign(memory,
-                                     label,
-                                     alloc_fn0(memory, expr->body.as_fn0))),
-            map_extract_func(memory, &expr->body.as_fn0));
+            append_list(memory, *funcs, alloc_assign(memory, label, expr)),
+            map_extract_func(memory, expr->body.as_fn0));
         return alloc_var(memory, label);
     }
     case EXPR_FN1: {
         Str label = get_func_label(memory);
         *funcs = merge_lists(
-            append_list(memory,
-                        *funcs,
-                        alloc_assign(memory,
-                                     label,
-                                     alloc_fn1(memory,
-                                               expr->body.as_fn1.arg,
-                                               expr->body.as_fn1.exprs))),
-            map_extract_func(memory, &expr->body.as_fn1.exprs));
+            append_list(memory, *funcs, alloc_assign(memory, label, expr)),
+            map_extract_func(memory, expr->body.as_fn1.exprs));
         return alloc_var(memory, label);
     }
     case EXPR_FN2: {
         Str label = get_func_label(memory);
         *funcs = merge_lists(
-            append_list(memory,
-                        *funcs,
-                        alloc_assign(memory,
-                                     label,
-                                     alloc_fn2(memory,
-                                               expr->body.as_fn2.args[0],
-                                               expr->body.as_fn2.args[1],
-                                               expr->body.as_fn2.exprs))),
-            map_extract_func(memory, &expr->body.as_fn2.exprs));
-        return alloc_var(memory, label);
-    }
-    case EXPR_FN3: {
-        Str label = get_func_label(memory);
-        *funcs = merge_lists(
-            append_list(memory,
-                        *funcs,
-                        alloc_assign(memory,
-                                     label,
-                                     alloc_fn3(memory,
-                                               expr->body.as_fn3.args[0],
-                                               expr->body.as_fn3.args[1],
-                                               expr->body.as_fn3.args[2],
-                                               expr->body.as_fn3.exprs))),
-            map_extract_func(memory, &expr->body.as_fn3.exprs));
+            append_list(memory, *funcs, alloc_assign(memory, label, expr)),
+            map_extract_func(memory, expr->body.as_fn2.exprs));
         return alloc_var(memory, label);
     }
     case EXPR_CALL0: {
-        return alloc_call0(memory,
-                           extract_func(memory, funcs, expr->body.as_call0));
+        expr->body.as_call0 = extract_func(memory, funcs, expr->body.as_call0);
+        return expr;
     }
     case EXPR_CALL1: {
-        return alloc_call1(
-            memory,
-            extract_func(memory, funcs, expr->body.as_call1.func),
-            extract_func(memory, funcs, expr->body.as_call1.arg));
+        expr->body.as_call1.func =
+            extract_func(memory, funcs, expr->body.as_call1.func);
+        expr->body.as_call1.arg =
+            extract_func(memory, funcs, expr->body.as_call1.arg);
+        return expr;
     }
     case EXPR_CALL2: {
-        return alloc_call2(
-            memory,
-            extract_func(memory, funcs, expr->body.as_call2.func),
-            extract_func(memory, funcs, expr->body.as_call2.args[0]),
-            extract_func(memory, funcs, expr->body.as_call2.args[1]));
+        expr->body.as_call2.func =
+            extract_func(memory, funcs, expr->body.as_call2.func);
+        expr->body.as_call2.args[0] =
+            extract_func(memory, funcs, expr->body.as_call2.args[0]);
+        expr->body.as_call2.args[1] =
+            extract_func(memory, funcs, expr->body.as_call2.args[1]);
+        return expr;
     }
     case EXPR_CALL3: {
-        return alloc_call3(
-            memory,
-            extract_func(memory, funcs, expr->body.as_call3.func),
-            extract_func(memory, funcs, expr->body.as_call3.args[0]),
-            extract_func(memory, funcs, expr->body.as_call3.args[1]),
-            extract_func(memory, funcs, expr->body.as_call3.args[2]));
+        expr->body.as_call3.func =
+            extract_func(memory, funcs, expr->body.as_call3.func);
+        expr->body.as_call3.args[0] =
+            extract_func(memory, funcs, expr->body.as_call3.args[0]);
+        expr->body.as_call3.args[1] =
+            extract_func(memory, funcs, expr->body.as_call3.args[1]);
+        expr->body.as_call3.args[2] =
+            extract_func(memory, funcs, expr->body.as_call3.args[2]);
+        return expr;
     }
     case EXPR_ASSIGN: {
-        return alloc_assign(
-            memory,
-            expr->body.as_assign.var,
-            extract_func(memory, funcs, expr->body.as_assign.expr));
+        expr->body.as_assign.expr =
+            extract_func(memory, funcs, expr->body.as_assign.expr);
+        return expr;
     }
     case EXPR_UPDATE: {
-        return alloc_update(
-            memory,
-            expr->body.as_update.var,
-            extract_func(memory, funcs, expr->body.as_update.expr));
+        expr->body.as_update.expr =
+            extract_func(memory, funcs, expr->body.as_update.expr);
+        return expr;
     }
     case EXPR_PAIR: {
-        return alloc_pair(memory,
-                          extract_func(memory, funcs, expr->body.as_pair[0]),
-                          extract_func(memory, funcs, expr->body.as_pair[1]));
+        expr->body.as_pair[0] =
+            extract_func(memory, funcs, expr->body.as_pair[0]);
+        expr->body.as_pair[1] =
+            extract_func(memory, funcs, expr->body.as_pair[1]);
+        return expr;
     }
     case EXPR_I64:
     case EXPR_VAR:
@@ -774,18 +703,21 @@ i32 main(void) {
     Expr*   expr0 = alloc_assign(
         memory,
         STR("f"),
-        alloc_fn1(
-            memory,
-            STR("x"),
-            push_list(alloc_fn0(memory,
-                                push_list(alloc_var(memory, STR("x")), NULL)),
-                      NULL)));
+        alloc_fn1(memory,
+                  STR("x"),
+                  alloc_list(memory,
+                             alloc_fn0(memory,
+                                       alloc_list(memory,
+                                                  alloc_var(memory, STR("x")),
+                                                  NULL)),
+                             NULL)));
     Expr* expr1 = alloc_assign(
         memory,
         STR("g"),
         alloc_fn0(
             memory,
-            push_list(
+            alloc_list(
+                memory,
                 alloc_assign(memory, STR("x"), alloc_i64(memory, 0)),
                 alloc_list(
                     memory,
