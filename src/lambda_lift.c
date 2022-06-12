@@ -234,6 +234,20 @@ static Expr* alloc_call2(Memory* memory, Expr* func, Expr* arg0, Expr* arg1) {
     return expr;
 }
 
+static Expr* alloc_call3(Memory* memory,
+                         Expr*   func,
+                         Expr*   arg0,
+                         Expr*   arg1,
+                         Expr*   arg2) {
+    Expr* expr = alloc_expr(memory);
+    expr->tag = EXPR_CALL3;
+    expr->body.as_call3.func = func;
+    expr->body.as_call3.args[0] = arg0;
+    expr->body.as_call3.args[1] = arg1;
+    expr->body.as_call3.args[2] = arg2;
+    return expr;
+}
+
 static Expr* alloc_assign(Memory* memory, Str var, Expr* expr) {
     Expr* assign = alloc_expr(memory);
     assign->tag = EXPR_ASSIGN;
@@ -493,7 +507,7 @@ static List* get_top_scope(Memory* memory, List* exprs) {
         exprs);
 }
 
-static List* get_inner_scope(Memory* memory, List* exprs, Str parent_scope) {
+static List* get_inner_scope0(Memory* memory, List* exprs, Str parent_scope) {
     Str scope = get_scope_label(memory);
     map_inject_scope(memory, exprs, scope);
     return alloc_list(
@@ -504,6 +518,30 @@ static List* get_inner_scope(Memory* memory, List* exprs, Str parent_scope) {
                                  &EXPR_VAR_NEW_SCOPE_FROM,
                                  alloc_var(memory, parent_scope))),
         exprs);
+}
+
+static List* get_inner_scope1(Memory* memory,
+                              List*   exprs,
+                              Str     parent_scope,
+                              Str     arg) {
+    Str scope = get_scope_label(memory);
+    map_inject_scope(memory, exprs, scope);
+    return alloc_list(
+        memory,
+        alloc_assign(memory,
+                     scope,
+                     alloc_call1(memory,
+                                 &EXPR_VAR_NEW_SCOPE_FROM,
+                                 alloc_var(memory, parent_scope))),
+        alloc_list(memory,
+                   alloc_assign(memory,
+                                scope,
+                                alloc_call3(memory,
+                                            &EXPR_VAR_INSERT_SCOPE,
+                                            alloc_var(memory, scope),
+                                            alloc_str(memory, arg),
+                                            alloc_var(memory, arg))),
+                   exprs));
 }
 
 Expr* inject_scope(Memory* memory, Expr* expr, Str scope) {
@@ -542,7 +580,7 @@ Expr* inject_scope(Memory* memory, Expr* expr, Str scope) {
     case EXPR_FN0: {
         expr->tag = EXPR_FN1;
         expr->body.as_fn1.exprs =
-            get_inner_scope(memory, expr->body.as_fn0, scope);
+            get_inner_scope0(memory, expr->body.as_fn0, scope);
         expr->body.as_fn1.arg = scope;
         return alloc_pair(memory, alloc_var(memory, scope), expr);
     }
@@ -550,7 +588,7 @@ Expr* inject_scope(Memory* memory, Expr* expr, Str scope) {
         Str arg = expr->body.as_fn1.arg;
         expr->tag = EXPR_FN2;
         expr->body.as_fn2.exprs =
-            get_inner_scope(memory, expr->body.as_fn1.exprs, scope);
+            get_inner_scope1(memory, expr->body.as_fn1.exprs, scope, arg);
         expr->body.as_fn2.args[0] = scope;
         expr->body.as_fn2.args[1] = arg;
         return alloc_pair(memory, alloc_var(memory, scope), expr);
