@@ -534,13 +534,11 @@ static List* get_inner_scope1(Memory* memory,
                                  &EXPR_VAR_NEW_SCOPE_FROM,
                                  alloc_var(memory, parent_scope))),
         alloc_list(memory,
-                   alloc_assign(memory,
-                                scope,
-                                alloc_call3(memory,
-                                            &EXPR_VAR_INSERT_SCOPE,
-                                            alloc_var(memory, scope),
-                                            alloc_str(memory, arg),
-                                            alloc_var(memory, arg))),
+                   alloc_call3(memory,
+                               &EXPR_VAR_INSERT_SCOPE,
+                               alloc_var(memory, scope),
+                               alloc_str(memory, arg),
+                               alloc_var(memory, arg)),
                    exprs));
 }
 
