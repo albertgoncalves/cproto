@@ -34,6 +34,7 @@ export FLAGS=(
     -Wno-declaration-after-statement
     -Wno-extra-semi-stmt
     -Wno-padded
+    -Wno-pointer-arith
     -Wno-reserved-identifier
     -Wno-vla
 )
