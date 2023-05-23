@@ -169,6 +169,8 @@ static void remove_child_at(Block* parent, u32 index) {
 }
 
 static void insert_child_at(Block* parent, Block* child, u32 index) {
+    EXIT_IF(!parent->alive);
+    EXIT_IF(!child->alive);
     EXIT_IF(parent == child);
     EXIT_IF((sizeof(((Block*)(0))->bitmap) * 8) <= index);
     EXIT_IF(parent->len <= index);
@@ -179,7 +181,8 @@ static void insert_child_at(Block* parent, Block* child, u32 index) {
     ++child->parents;
 }
 
-static void _trace(Block* block, u32 indent) {
+static void _print_trace(Block* block, u32 indent) {
+    EXIT_IF(!block->alive);
     EXIT_IF(CAP_STACK <= LEN_STACK);
     for (u32 i = 0; i < LEN_STACK; ++i) {
         if (block == STACK[i]) {
@@ -190,31 +193,30 @@ static void _trace(Block* block, u32 indent) {
     for (u32 _ = 0; _ < indent; ++_) {
         putchar(' ');
     }
-    printf("- #%u (%u)\n", block_index(block), block->parents);
+    printf("- #%u (parents: %hhu)\n", block_index(block), block->parents);
     for (u32 i = 0; i < 32; ++i) {
         const u32 bit = 1u << i;
         if ((block->bitmap & bit) != 0) {
-            _trace((Block*)block->array[i], indent + 2);
+            _print_trace((Block*)block->array[i], indent + 2);
         }
     }
 }
 
-static void trace(Block* block) {
+static void print_trace(Block* block) {
     LEN_STACK = 0;
-    _trace(block, 0);
+    _print_trace(block, 0);
 }
 
-#define PRINT_BLOCKS()                               \
-    do {                                             \
-        putchar('\n');                               \
-        for (u32 i = 0; i < LEN_BLOCKS; ++i) {       \
-            Block* block = &BLOCKS[i];               \
-            printf("[ #%u (parents: %hhu, %s) ]\n",  \
-                   block_index(block),               \
-                   block->parents,                   \
-                   block->alive ? "alive" : "dead"); \
-        }                                            \
-    } while (0)
+static void print_blocks(void) {
+    putchar('\n');
+    for (u32 i = 0; i < LEN_BLOCKS; ++i) {
+        Block* block = &BLOCKS[i];
+        printf("[ #%u (parents: %hhu, %s) ]\n",
+               block_index(block),
+               block->parents,
+               block->alive ? "alive" : "dead");
+    }
+}
 
 i32 main(void) {
     {
@@ -236,18 +238,19 @@ i32 main(void) {
 
                     pop_root();
                 }
-                trace(x0);
-                trace(x1);
-                PRINT_BLOCKS();
+                print_trace(x0);
+                print_trace(x1);
+                print_blocks();
+
                 pop_root();
             }
-            PRINT_BLOCKS();
+            print_blocks();
+
             pop_root();
         }
-        PRINT_BLOCKS();
+        print_blocks();
+
         pop_root();
     }
     return OK;
 }
-
-#undef PRINT_BLOCKS
