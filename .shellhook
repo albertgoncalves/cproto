@@ -21,6 +21,7 @@ export FLAGS=(
     -funsigned-char
     -lcrypto
     -lm
+    -lssl
     -lX11
     "-march=native"
     -O1
