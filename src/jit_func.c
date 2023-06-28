@@ -32,6 +32,7 @@ i32 main(void) {
         }
     */
     const u8  bytes[] = {0x48, 0x8B, 0x06, 0x48, 0x01, 0x07, 0xC3};
+    // NOTE: Alignment is not necessary, but doesn't hurt to know this trick.
     const u64 size = (sizeof(bytes) + (8lu - 1lu)) & (~(8lu - 1lu));
 
     void* func = mmap(NULL,
