@@ -1,9 +1,10 @@
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 typedef uint32_t u32;
 typedef int32_t  i32;
+
+#define OK 0
 
 static u32 ackermann(u32 m, u32 n) {
     if (m == 0) {
@@ -19,5 +20,5 @@ i32 main(void) {
     for (u32 i = 0; i < 12; ++i) {
         printf("%u\n", ackermann(3, i));
     }
-    return EXIT_SUCCESS;
+    return OK;
 }
