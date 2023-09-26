@@ -376,7 +376,8 @@ static u8 TESTS_FAILED = 0;
 #define TEST(postfix_expr, input, expected)                            \
     {                                                                  \
         if (get_match(memory, get_nfa(memory, postfix_expr), input) == \
-            expected) {                                                \
+            expected)                                                  \
+        {                                                              \
             ++TESTS_PASSED;                                            \
         } else {                                                       \
             printf("\033[1;31mTest failed\033[0m @ "                   \

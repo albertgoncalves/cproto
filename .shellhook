@@ -37,6 +37,7 @@ export FLAGS=(
     -Wno-padded
     -Wno-pointer-arith
     -Wno-reserved-identifier
+    -Wno-unsafe-buffer-usage
     -Wno-vla
 )
 
