@@ -29,10 +29,12 @@ export FLAGS=(
     "-std=gnu11"
     -Werror
     -Weverything
+    -Wno-c2x-extensions
     -Wno-c++98-compat
     -Wno-cast-align
     -Wno-covered-switch-default
     -Wno-declaration-after-statement
+    -Wno-disabled-macro-expansion
     -Wno-extra-semi-stmt
     -Wno-padded
     -Wno-pointer-arith
