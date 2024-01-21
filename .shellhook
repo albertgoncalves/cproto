@@ -20,6 +20,7 @@ export FLAGS=(
     -fshort-enums
     -funsigned-char
     -lcrypto
+    -lcurl
     -lm
     -lssl
     -lX11
