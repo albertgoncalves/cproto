@@ -44,18 +44,15 @@ export FLAGS=(
 )
 
 runc () {
-    handle=$(echo "$1" | sed 's/^[a-z\/]*\/\(.*\)\.[a-z]*$/\1/')
+    handle=$(basename "${1%%.*}")
+    args=("$@")
     clang-format -i -verbose "$1" || return
     cp "$1" "$WD/build/$handle.c"
     if $(
         cd "$WD/build" || return
         clang -o "$WD/bin/${handle}" "${FLAGS[@]}" "$handle.c"
     ); then
-        if [ -z "$2" ]; then
-            "$WD/bin/${handle}"
-        else
-            "$WD/bin/${handle}" "$2"
-        fi
+        "$WD/bin/${handle}" "${args[@]:1}"
     fi
 }
 
