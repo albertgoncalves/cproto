@@ -14,6 +14,7 @@ typedef CURLcode CurlCode;
 i32 main(void) {
     Curl* curl = curl_easy_init();
     if (curl) {
+        // NOTE: See `https://pie.dev/#/Dynamic_data/get_delay__delay_`.
         curl_easy_setopt(curl, CURLOPT_URL, "https://pie.dev/delay/1");
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
