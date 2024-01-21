@@ -2,10 +2,12 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <openssl/err.h>
 #include <openssl/ssl.h>
 
-typedef int32_t i32;
-typedef size_t  usize;
+typedef int32_t  i32;
+typedef uint64_t u64;
+typedef size_t   usize;
 
 typedef struct addrinfo AddrInfo;
 typedef SSL             SslConnection;
@@ -18,6 +20,12 @@ typedef enum {
     FALSE = 0,
     TRUE,
 } Bool;
+
+#define EXIT()                                              \
+    do {                                                    \
+        printf("%s:%s:%d\n", __FILE__, __func__, __LINE__); \
+        _exit(ERROR);                                       \
+    } while (FALSE)
 
 #define EXIT_WITH(x)                                                \
     do {                                                            \
@@ -72,7 +80,11 @@ i32 main(void) {
     SslConnection* connection = SSL_new(context);
     SSL_set_fd(connection, descriptor);
 
-    EXIT_IF(SSL_connect(connection) < 0);
+    if (SSL_connect(connection) <= 0) {
+        u64 error = ERR_get_error();
+        printf("%s\n", ERR_error_string(error, NULL));
+        EXIT();
+    }
 
     SSL_write(connection, REQUEST, (sizeof REQUEST) - 1);
 
