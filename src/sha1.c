@@ -16,14 +16,13 @@ i32 main(i32 n, const char** args) {
     if (n < 2) {
         return ERROR;
     }
-
-    u8 digest[SHA_DIGEST_LENGTH] = {0};
-    SHA1((const u8*)args[1], strlen(args[1]), digest);
+    const u8* digest = SHA1((const u8*)args[1], strlen(args[1]), NULL);
 
     u8 buffer[SHA_DIGEST_LENGTH * 2 + 1] = {0};
     for (i32 i = 0; i < SHA_DIGEST_LENGTH; i++) {
         sprintf((char*)&(buffer[i * 2]), "%02x", digest[i]);
     }
+
     // NOTE: `$ echo -n ... | sha1sum`
     printf("SHA1 of \"%s\": %s\n", args[1], buffer);
 
