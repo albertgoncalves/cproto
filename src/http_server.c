@@ -13,6 +13,8 @@ typedef int32_t i32;
 typedef uint8_t  u8;
 typedef uint32_t u32;
 
+typedef ssize_t isize;
+
 typedef struct sockaddr_in SockAddrIn;
 typedef struct in_addr     InAddr;
 typedef socklen_t          SockLen;
@@ -43,12 +45,12 @@ typedef struct sockaddr    SockAddr;
     "Content-type: text/html\r\n\r\n" \
     "<html><h3>Hello, world!</h3></html>\r\n"
 
-#define CAP_BUFFER 1024
+#define CAP_BUFFER (1 << 12)
 static char BUFFER[CAP_BUFFER];
 
-#define CAP_METHOD  64
-#define CAP_URI     64
-#define CAP_VERSION 64
+#define CAP_METHOD  (1 << 6)
+#define CAP_URI     (1 << 6)
+#define CAP_VERSION (1 << 6)
 
 i32 main(void) {
     i32 host_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -68,6 +70,7 @@ i32 main(void) {
     host_addr.sin_family = AF_INET;
     host_addr.sin_port = htons(PORT);
     host_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    // host_addr.sin_addr.s_addr = inet_addr("192.168.1.152");
 
     EXIT_IF_ERRNO(bind(host_socket, (SockAddr*)&host_addr, host_len) != 0);
     printf("  [ Socket successfully bound to address ]\n");
@@ -90,28 +93,24 @@ i32 main(void) {
     EXIT_IF_ERRNO(listen(host_socket, SOMAXCONN) != 0);
     printf("  [ Server listening for connections ]\n");
 
-    for (u32 i = 0; i < 3; ++i) {
+    for (u32 i = 0; i < 100; ++i) {
+        SockAddrIn client_addr;
+        SockLen    client_len = sizeof(client_addr);
+
         i32 client_socket =
-            accept(host_socket, (SockAddr*)&host_addr, &host_len);
-        if (client_socket < 0) {
+            accept(host_socket, (SockAddr*)&client_addr, &client_len);
+        if (client_socket == -1) {
             PRINT_ERRNO();
             continue;
         }
         printf("  [ Connection accepted ]\n");
 
-        SockAddrIn client_addr;
-        SockLen    client_len = sizeof(client_addr);
-        if (getsockname(client_socket, (SockAddr*)&client_addr, &client_len) <
-            0)
-        {
+        isize read_len = read(client_socket, BUFFER, CAP_BUFFER);
+        if (read_len < 0) {
             PRINT_ERRNO();
             continue;
         }
-
-        if (read(client_socket, BUFFER, CAP_BUFFER) < 0) {
-            PRINT_ERRNO();
-            continue;
-        }
+        printf("\n%.*s", (i32)read_len, BUFFER);
 
         {
             char method[CAP_METHOD];
@@ -138,7 +137,7 @@ i32 main(void) {
                    uri);
         }
 
-        if (write(client_socket, RESPONSE, sizeof(RESPONSE) - 1) < 0) {
+        if (write(client_socket, RESPONSE, sizeof(RESPONSE) - 1) == -1) {
             PRINT_ERRNO();
             continue;
         }
