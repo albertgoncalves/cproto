@@ -27,6 +27,7 @@ export FLAGS=(
     "-march=native"
     -O1
     -pthread
+    -rdynamic
     "-std=gnu11"
     -Werror
     -Weverything
