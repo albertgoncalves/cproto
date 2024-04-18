@@ -19,6 +19,7 @@ export FLAGS=(
     "-fsanitize=undefined"
     -fshort-enums
     -funsigned-char
+    -rdynamic
     -lcrypto
     -lcurl
     -lm
