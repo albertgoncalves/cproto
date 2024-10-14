@@ -138,6 +138,8 @@ int main(int argv, char** argc) {
             printf("(%2u) OTHER : \"%s\"\n", i, token->string);
             break;
         }
+        default: {
+        }
         }
     }
     fclose(file);

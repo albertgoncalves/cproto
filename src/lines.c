@@ -142,6 +142,8 @@ static void set_pixels(color* mask, pixel* pixels) {
             pixels->blue = LIGHT_GRAY;
             break;
         }
+        default: {
+        }
         }
         ++pixels;
         ++mask;

@@ -316,6 +316,8 @@ static Bool get_match(Memory* memory, Link link, const char* string) {
                     PUSH(stack_tokens, state);
                     break;
                 }
+                default: {
+                }
                 }
                 PUSH(stack_visited, state);
             }

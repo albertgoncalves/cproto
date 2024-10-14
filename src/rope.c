@@ -126,6 +126,8 @@ static Pair _split(Memory* memory, Rope* rope, i8 i) {
         }
         break;
     }
+    default: {
+    }
     }
     return pair;
 }
@@ -146,6 +148,8 @@ static void free_(Memory* memory, Rope* rope) {
         free_(memory, rope->items.pair.right);
         dealloc(memory, rope);
         break;
+    }
+    default: {
     }
     }
 }
@@ -190,6 +194,8 @@ static Rope* balance(Memory* memory, Rope* rope) {
         rope = concat(memory, left, right);
         break;
     }
+    default: {
+    }
     }
     return rope;
 }
@@ -210,6 +216,8 @@ static char ping(Rope* rope, i8 i) {
         }
         break;
     }
+    default: {
+    }
     }
     return value;
 }
@@ -224,6 +232,8 @@ static void _print_string(Rope* rope) {
         _print_string(rope->items.pair.left);
         _print_string(rope->items.pair.right);
         break;
+    }
+    default: {
     }
     }
 }
@@ -254,6 +264,8 @@ static void _print_rope(Rope* rope, u8 n) {
         indent(n);
         printf(")");
         break;
+    }
+    default: {
     }
     }
 }

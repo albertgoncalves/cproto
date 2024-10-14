@@ -144,8 +144,11 @@ static Node* make_tree(Memory* memory, i32 l, i32 r, Dim3 dim) {
         quicksort_z(l, r);
         break;
     }
-    case COUNT_DIMS:
+    case COUNT_DIMS: {
         ERROR();
+    }
+    default: {
+    }
     }
     Node*      node = alloc_node(memory);
     const i32  m = ((r - l) / 2) + l;
@@ -240,6 +243,8 @@ static void show_within_radius(const Node* node,
     }
     case COUNT_DIMS: {
         ERROR();
+    }
+    default: {
     }
     }
 }
