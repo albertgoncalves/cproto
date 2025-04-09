@@ -41,6 +41,7 @@ export FLAGS=(
     -Wno-extra-semi-stmt
     -Wno-padded
     -Wno-pointer-arith
+    -Wno-pre-c11-compat
     -Wno-reserved-identifier
     -Wno-unsafe-buffer-usage
     -Wno-vla
