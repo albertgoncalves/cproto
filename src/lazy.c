@@ -1,55 +1,53 @@
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-#define STATIC_ASSERT(condition) _Static_assert(condition, "!(" #condition ")")
-
-typedef uint64_t u64;
+typedef int64_t i64;
 
 typedef struct {
-    void* (*force)(void*);
-    union {
-        void* value;
-        void* (*func)(void*);
-    } _;
+    void* (*func)(void*);
     void* args;
-} Lazy;
+} Closure;
 
-STATIC_ASSERT(sizeof(void*) == sizeof(u64));
+typedef struct Lazy Lazy;
 
-static void* lazy_cache(void* object) {
-    printf(".\n");
-    return ((Lazy*)object)->_.value;
+struct Lazy {
+    void* (*eval)(Lazy*);
+    Closure closure;
+};
+
+static void* lazy_from_cache(Lazy* lazy) {
+    return lazy->closure.args;
 }
 
-static void* lazy_force(void* object) {
-    printf("!\n");
-    void* value = ((Lazy*)object)->_.func(((Lazy*)object)->args);
-    ((Lazy*)object)->force = lazy_cache;
-    ((Lazy*)object)->_.value = value;
-    return value;
+static void* lazy_eval(Lazy* lazy) {
+    void* result = lazy->closure.func(lazy->closure.args);
+    lazy->eval = lazy_from_cache;
+    lazy->closure.args = result;
+    return result;
 }
 
-static Lazy* lazy_new(void* (*func)(void*), void* args) {
-    Lazy* object = (Lazy*)calloc(1, sizeof(Lazy));
-    object->_.func = func;
-    object->args = args;
-    object->force = lazy_force;
-    return object;
-}
-
-static void* work(void*) {
+static void* func(void*) {
     usleep(500000);
-    return (void*)123;
+    return (void*)-123;
 }
 
 int main(void) {
-    printf("sizeof(Lazy): %zu\n", sizeof(Lazy));
-    Lazy* object = lazy_new(work, NULL);
-    object->force(object);
-    object->force(object);
-    printf("%lu\n", (u64)(object->force(object)));
-    free(object);
+    printf("sizeof(Closure) : %zu\n"
+           "sizeof(Lazy)    : %zu\n"
+           "\n",
+           sizeof(Closure),
+           sizeof(Lazy));
+
+    Lazy lazy = (Lazy){
+        .eval = lazy_eval,
+        .closure = {.func = func, .args = NULL},
+    };
+
+    for (int i = 0; i < 3; ++i) {
+        void* result = lazy.eval(&lazy);
+        printf("%ld\n", (i64)result);
+    }
+
     return 0;
 }
