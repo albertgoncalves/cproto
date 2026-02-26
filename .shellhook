@@ -2,7 +2,7 @@
 
 export WD=$PWD
 
-for dir in bin build out; do
+for dir in bin out; do
     if [ ! -d "$WD/$dir" ]; then
         mkdir "$WD/$dir"
     fi
@@ -54,11 +54,7 @@ runc () {
     handle=$(basename "${1%%.*}")
     args=("$@")
     clang-format -i -verbose "$1" || return
-    cp "$1" "$WD/build/$handle.c"
-    if $(
-        cd "$WD/build" || return
-        clang -o "$WD/bin/${handle}" "${FLAGS[@]}" "$handle.c"
-    ); then
+    if $(clang -o "$WD/bin/${handle}" "${FLAGS[@]}" "$WD/src/$handle.c"); then
         "$WD/bin/${handle}" "${args[@]:1}"
     fi
 }
