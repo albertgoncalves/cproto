@@ -152,7 +152,7 @@ static Node* make_tree(Memory* memory, i32 l, i32 r, Dim3 dim) {
     }
     Node*      node = alloc_node(memory);
     const i32  m = ((r - l) / 2) + l;
-    const Dim3 next_dim = (dim + 1) % COUNT_DIMS;
+    const Dim3 next_dim = (Dim3)((dim + 1) % COUNT_DIMS);
     node->point = POINTS[m];
     node->dim = dim;
     if (m != l) {
@@ -259,7 +259,7 @@ i32 main(void) {
            sizeof(Node),
            sizeof(Memory));
     {
-        Memory* memory = calloc(1, sizeof(Memory));
+        Memory* memory = (Memory*)calloc(1, sizeof(Memory));
         make_tree(memory, 0, COUNT_POINTS - 1, DIM_X);
         EXIT_IF(COUNT_POINTS != memory->len_nodes);
         printf("\n");

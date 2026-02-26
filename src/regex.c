@@ -406,7 +406,7 @@ int main(void) {
            sizeof(Bool),
            sizeof(Link),
            sizeof(Memory));
-    Memory* memory = calloc(1, sizeof(Memory));
+    Memory* memory = (Memory*)calloc(1, sizeof(Memory));
     if (memory == NULL) {
         PRINT_ERROR;
         return EXIT_FAILURE;

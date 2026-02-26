@@ -324,7 +324,7 @@ i32 main(void) {
            sizeof(List),
            sizeof(Memory));
     {
-        Memory* memory = calloc(1, sizeof(Memory));
+        Memory* memory = (Memory*)calloc(1, sizeof(Memory));
         set_bounds(memory);
         set_span(memory);
         set_grid(memory);

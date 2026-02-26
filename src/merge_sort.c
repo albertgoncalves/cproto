@@ -42,7 +42,7 @@ int main(void) {
     i8  array[] = {12, 11, 5, -1, 13, 6, 7};
     u8  n = (u8)(sizeof(array) / sizeof(array[0]));
     u8  m = (u8)(n - 1);
-    i8* buffer = malloc(sizeof(u8) * n * 2u);
+    i8* buffer = (i8*)malloc(sizeof(u8) * n * 2u);
     if (buffer == NULL) {
         return EXIT_FAILURE;
     }

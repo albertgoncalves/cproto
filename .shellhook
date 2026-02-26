@@ -35,15 +35,18 @@ export FLAGS=(
     -Wno-c2x-extensions
     -Wno-c++98-compat
     -Wno-cast-align
+    -Wno-c++-keyword
     -Wno-covered-switch-default
     -Wno-declaration-after-statement
     -Wno-disabled-macro-expansion
     -Wno-extra-semi-stmt
+    -Wno-ms-bitfield-padding
     -Wno-padded
     -Wno-pointer-arith
     -Wno-pre-c11-compat
     -Wno-reserved-identifier
     -Wno-unsafe-buffer-usage
+    -Wno-used-but-marked-unused
     -Wno-vla
 )
 

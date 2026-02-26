@@ -133,7 +133,7 @@ static Bool check(Heap* heap, u8 i) {
     {
         return FALSE;
     }
-    return check(heap, l) && check(heap, r);
+    return (Bool)(check(heap, l) && check(heap, r));
 }
 
 #define INSERT(heap, x)                                \
@@ -149,7 +149,7 @@ static Bool check(Heap* heap, u8 i) {
     }
 
 i32 main(void) {
-    Heap* heap = calloc(1, sizeof(Heap));
+    Heap* heap = (Heap*)calloc(1, sizeof(Heap));
     EXIT_IF(!heap);
     {
         INSERT(heap, 8);

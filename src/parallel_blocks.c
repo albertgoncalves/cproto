@@ -62,7 +62,7 @@ static void set_buffer(u16* buffer, Block block, u16 value) {
 }
 
 static void* do_work(void* args) {
-    Payload* payload = args;
+    Payload* payload = (Payload*)args;
     u16*     buffer = payload->buffer;
     for (;;) {
         u16 index = (u16)atomic_fetch_add(&INDEX, 1);
@@ -93,7 +93,7 @@ int main(void) {
     if ((BUFFER_CAP < BUFFER_LEN) || (BLOCKS_CAP < BLOCKS_LEN)) {
         return EXIT_FAILURE;
     }
-    Memory* memory = calloc(1, sizeof(Memory));
+    Memory* memory = (Memory*)calloc(1, sizeof(Memory));
     if (memory == NULL) {
         return EXIT_FAILURE;
     }

@@ -229,7 +229,7 @@ static Scope* alloc_scope(Memory* memory) {
 }
 
 static Bool eq(String a, String b) {
-    return (a.len == b.len) && (!memcmp(a.buffer, b.buffer, a.len));
+    return (Bool)((a.len == b.len) && (!memcmp(a.buffer, b.buffer, a.len)));
 }
 
 static void print_string(String string) {

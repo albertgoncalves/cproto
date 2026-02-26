@@ -111,7 +111,7 @@ int main(int argv, char** argc) {
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    memory_t* memory = malloc(sizeof(memory_t));
+    memory_t* memory = (memory_t*)malloc(sizeof(memory_t));
     if (memory == NULL) {
         return EXIT_FAILURE;
     }

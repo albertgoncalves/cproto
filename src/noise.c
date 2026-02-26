@@ -129,7 +129,7 @@ int main(void) {
     if (file == NULL) {
         return EXIT_FAILURE;
     }
-    bmpBuffer* buffer = calloc(1u, sizeof(bmpBuffer));
+    bmpBuffer* buffer = (bmpBuffer*)calloc(1u, sizeof(bmpBuffer));
     if (buffer == NULL) {
         return EXIT_FAILURE;
     }

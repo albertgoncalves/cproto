@@ -30,7 +30,7 @@ static void set_a(a_t* a, const char* string) {
 }
 
 int main(void) {
-    memory_t* memory = malloc(sizeof(memory_t));
+    memory_t* memory = (memory_t*)malloc(sizeof(memory_t));
     if (memory == NULL) {
         return EXIT_FAILURE;
     }

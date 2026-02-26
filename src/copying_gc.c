@@ -105,7 +105,7 @@ static Data unpack_i64(Data data) {
 
 static Bool is_pointer(Data data) {
     EXIT_IF(!data.as_raw_pointer);
-    return (data.as_u64 & DATA_MASK) == DATA_POINTER_TAG;
+    return (Bool)((data.as_u64 & DATA_MASK) == DATA_POINTER_TAG);
 }
 
 STATIC_ASSERT(sizeof(u64) == 8);

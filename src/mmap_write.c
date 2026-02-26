@@ -32,7 +32,7 @@ i32 main(i32 n, const char** args) {
     }
 
     char* memory =
-        mmap(0, LEN, PROT_READ | PROT_WRITE, MAP_SHARED, descriptor, 0);
+        (char*)mmap(0, LEN, PROT_READ | PROT_WRITE, MAP_SHARED, descriptor, 0);
     if (memory == MAP_FAILED) {
         close(descriptor);
         return ERROR;

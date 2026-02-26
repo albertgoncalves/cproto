@@ -36,7 +36,7 @@ typedef struct {
 } Memory;
 
 static Memory* init(void) {
-    Memory* memory = calloc(1u, sizeof(Memory));
+    Memory* memory = (Memory*)calloc(1u, sizeof(Memory));
     if (memory == NULL) {
         exit(EXIT_FAILURE);
     }

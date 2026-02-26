@@ -841,7 +841,7 @@ i32 main(void) {
            sizeof(Threads),
            sizeof(Bounds),
            sizeof(Memory));
-    Memory* memory = calloc(1, sizeof(Memory));
+    Memory* memory = (Memory*)calloc(1, sizeof(Memory));
     EXIT_IF(!memory);
     {
         Expr* expr = compile(memory, TO_STRING("a*"));

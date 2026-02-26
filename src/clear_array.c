@@ -14,7 +14,7 @@ typedef struct {
 } Memory;
 
 i32 main(void) {
-    Memory* memory = calloc(1, sizeof(Memory));
+    Memory* memory = (Memory*)calloc(1, sizeof(Memory));
     memset(memory->array, 0xFF, sizeof(memory->array));
     for (i32 i = 0; i < X; ++i) {
         for (i32 j = 0; j < Y; ++j) {

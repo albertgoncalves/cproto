@@ -23,7 +23,7 @@ typedef struct {
 #define PRINT  print
 
 static STRUCT* CREATE(void) {
-    STRUCT* array = malloc(sizeof(STRUCT) + sizeof(TYPE));
+    STRUCT* array = (STRUCT*)malloc(sizeof(STRUCT) + sizeof(TYPE));
     if (array == NULL) {
         exit(EXIT_FAILURE);
     }
@@ -41,7 +41,9 @@ static STRUCT* PUSH(STRUCT* array, TYPE item) {
         } else {
             array->cap = (u8)(array->cap << 1);
         }
-        array = realloc(array, sizeof(STRUCT) + (sizeof(TYPE) * array->cap));
+        array =
+            (FlexArray*)realloc(array,
+                                sizeof(STRUCT) + (sizeof(TYPE) * array->cap));
         if (array == NULL) {
             exit(EXIT_FAILURE);
         }

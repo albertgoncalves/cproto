@@ -66,7 +66,7 @@ i32 main(void) {
     for (u32 j = 0;;) {
         f = counter(&n);
         for (u32 i = 0; i < 5; ++i) {
-            printf("%u\n", f(&n));
+            printf("%d\n", f(&n));
         }
         ++j;
         if (3 <= j) {

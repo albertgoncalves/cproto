@@ -49,7 +49,7 @@ static error_t push(fifo_queue_t* queue, const T value) {
     if (queue == NULL) {
         return TRUE;
     }
-    node_t* next_node = malloc(sizeof(node_t));
+    node_t* next_node = (node_t*)malloc(sizeof(node_t));
     if (next_node == NULL) {
         return TRUE;
     }

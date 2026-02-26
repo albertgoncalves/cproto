@@ -84,7 +84,7 @@ ALLOC_EMPTY(alloc_empty_array, Array, u32)
     }
 
 i32 main(void) {
-    Memory* memory = calloc(1, sizeof(Memory));
+    Memory* memory = (Memory*)calloc(1, sizeof(Memory));
     EXIT_IF(!memory);
     Array*  x;
     String* y;

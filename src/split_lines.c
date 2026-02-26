@@ -42,7 +42,7 @@ int main(int n, char** args) {
     if (BUFFER_CAP < size) {
         return EXIT_FAILURE;
     }
-    Memory* memory = calloc(1, sizeof(Memory));
+    Memory* memory = (Memory*)calloc(1, sizeof(Memory));
     if (fread(memory->buffer, sizeof(char), size, file) != size) {
         return EXIT_FAILURE;
     }

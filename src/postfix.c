@@ -27,7 +27,7 @@ static char* get_postfix(const char* expression) {
     OpCounter counter = {0};
     OpCounter stack[STACK_CAP] = {0};
     i32       stack_index = 0;
-    char*     buffer = calloc(((u32)n) * 2u, sizeof(char));
+    char*     buffer = (char*)calloc(((u32)n) * 2u, sizeof(char));
     if (buffer == NULL) {
         exit(EXIT_FAILURE);
     }
