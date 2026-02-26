@@ -2,9 +2,9 @@
 
 export WD=$PWD
 
-for x in bin build out; do
-    if [ ! -d "$WD/$x" ]; then
-        mkdir "$WD/$x"
+for dir in bin build out; do
+    if [ ! -d "$WD/$dir" ]; then
+        mkdir "$WD/$dir"
     fi
 done
 
@@ -61,6 +61,3 @@ runc () {
 }
 
 export -f runc
-
-alias feh="feh --force-aliasing"
-alias shellcheck="shellcheck -e SC2091"

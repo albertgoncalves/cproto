@@ -4,8 +4,7 @@ mkShell.override { stdenv = llvmPackages_19.stdenv; } {
         curl
         feh
         openssl
-        shellcheck
-        xorg.libX11
+        libx11
     ];
     shellHook = ''
         export NIX_ENFORCE_NO_NATIVE=0
