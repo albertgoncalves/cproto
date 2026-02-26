@@ -126,10 +126,7 @@ int main(void) {
     for (u8 i = 0; i < THREAD_CAP; ++i) {
         memory->payloads[i] = payload;
         memory->payloads[i].id = i;
-        pthread_create(&memory->threads[i],
-                       NULL,
-                       do_work,
-                       &memory->payloads[i]);
+        pthread_create(&memory->threads[i], NULL, do_work, &memory->payloads[i]);
     }
     for (u8 i = 0; i < THREAD_CAP; ++i) {
         pthread_join(memory->threads[i], NULL);

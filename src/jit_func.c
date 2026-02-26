@@ -13,16 +13,12 @@ typedef int64_t i64;
 #define OK    0
 #define ERROR 1
 
-#define EXIT_IF(condition)            \
-    do {                              \
-        if (condition) {              \
-            printf("%s:%s:%d `%s`\n", \
-                   __FILE__,          \
-                   __func__,          \
-                   __LINE__,          \
-                   #condition);       \
-            _exit(ERROR);             \
-        }                             \
+#define EXIT_IF(condition)                                                       \
+    do {                                                                         \
+        if (condition) {                                                         \
+            printf("%s:%s:%d `%s`\n", __FILE__, __func__, __LINE__, #condition); \
+            _exit(ERROR);                                                        \
+        }                                                                        \
     } while (0)
 
 i32 main(void) {
@@ -35,12 +31,7 @@ i32 main(void) {
     // NOTE: Alignment is not necessary, but doesn't hurt to know this trick.
     const u64 size = (sizeof(bytes) + (8lu - 1lu)) & (~(8lu - 1lu));
 
-    void* func = mmap(NULL,
-                      size,
-                      PROT_READ | PROT_WRITE,
-                      MAP_ANONYMOUS | MAP_PRIVATE,
-                      -1,
-                      0);
+    void* func = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     EXIT_IF(func == MAP_FAILED);
     memcpy(func, bytes, sizeof(bytes));
     EXIT_IF(mprotect(func, size, PROT_EXEC));

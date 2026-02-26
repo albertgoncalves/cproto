@@ -21,17 +21,12 @@ typedef struct {
 
 #if 1
     #define ERROR 1
-    #define EXIT_IF(condition)             \
-        do {                               \
-            if (condition) {               \
-                fprintf(stderr,            \
-                        "%s:%s:%d `%s`\n", \
-                        __FILE__,          \
-                        __func__,          \
-                        __LINE__,          \
-                        #condition);       \
-                _exit(ERROR);              \
-            }                              \
+    #define EXIT_IF(condition)                                                                \
+        do {                                                                                  \
+            if (condition) {                                                                  \
+                fprintf(stderr, "%s:%s:%d `%s`\n", __FILE__, __func__, __LINE__, #condition); \
+                _exit(ERROR);                                                                 \
+            }                                                                                 \
         } while (0)
 #else
     #define EXIT_IF(condition) \
@@ -108,8 +103,7 @@ static String encode(const u8* input, u32 n) {
         }
 
         if (i == 2) {
-            const u32 bits =
-                (((u32)(input[j])) << 16u) | (((u32)(input[j + 1])) << 8u);
+            const u32 bits = (((u32)(input[j])) << 16u) | (((u32)(input[j + 1])) << 8u);
 
             PUSH_BUFFER(TABLE[(MASK0 & bits) >> 18u]);
             PUSH_BUFFER(TABLE[(MASK1 & bits) >> 12u]);
@@ -119,9 +113,8 @@ static String encode(const u8* input, u32 n) {
             break;
         }
 
-        const u32 bits = (((u32)(input[j])) << 16u) |
-                         (((u32)(input[j + 1])) << 8u) |
-                         (((u32)(input[j + 2])));
+        const u32 bits =
+            (((u32)(input[j])) << 16u) | (((u32)(input[j + 1])) << 8u) | (((u32)(input[j + 2])));
 
         PUSH_BUFFER(TABLE[(MASK0 & bits) >> 18u]);
         PUSH_BUFFER(TABLE[(MASK1 & bits) >> 12u]);

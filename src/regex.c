@@ -13,8 +13,7 @@ typedef uint8_t u8;
 #define OP_ZERO_OR_MANY '*'
 #define OP_ONE_OR_MANY  '+'
 
-#define PRINT_ERROR \
-    fprintf(stderr, "\033[1;31mError\033[0m @ \033[1m%s\033[0m\n", __func__)
+#define PRINT_ERROR fprintf(stderr, "\033[1;31mError\033[0m @ \033[1m%s\033[0m\n", __func__)
 
 typedef enum {
     FALSE = 0,
@@ -183,8 +182,7 @@ static Link get_nfa(Memory* memory, const char* postfix_expr) {
         .links = memory->link_stack,
         .len = 0,
     };
-    for (char token = *postfix_expr++; token != '\0'; token = *postfix_expr++)
-    {
+    for (char token = *postfix_expr++; token != '\0'; token = *postfix_expr++) {
         switch (token) {
         case OP_CONCAT: {
             set_concat(&stack);
@@ -375,19 +373,17 @@ static Bool get_match(Memory* memory, Link link, const char* string) {
 static u8 TESTS_PASSED = 0;
 static u8 TESTS_FAILED = 0;
 
-#define TEST(postfix_expr, input, expected)                            \
-    {                                                                  \
-        if (get_match(memory, get_nfa(memory, postfix_expr), input) == \
-            expected)                                                  \
-        {                                                              \
-            ++TESTS_PASSED;                                            \
-        } else {                                                       \
-            printf("\033[1;31mTest failed\033[0m @ "                   \
-                   "(\033[1m\"%s\", \"%s\"\033[0m)\n",                 \
-                   postfix_expr,                                       \
-                   input);                                             \
-            ++TESTS_FAILED;                                            \
-        }                                                              \
+#define TEST(postfix_expr, input, expected)                                        \
+    {                                                                              \
+        if (get_match(memory, get_nfa(memory, postfix_expr), input) == expected) { \
+            ++TESTS_PASSED;                                                        \
+        } else {                                                                   \
+            printf("\033[1;31mTest failed\033[0m @ "                               \
+                   "(\033[1m\"%s\", \"%s\"\033[0m)\n",                             \
+                   postfix_expr,                                                   \
+                   input);                                                         \
+            ++TESTS_FAILED;                                                        \
+        }                                                                          \
     }
 
 int main(void) {

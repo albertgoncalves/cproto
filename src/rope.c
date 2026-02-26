@@ -96,9 +96,7 @@ static Rope* new_(Memory* memory, const char* string, u8 i, u8 j) {
         return leaf(memory, string[i]);
     }
     u8 m = (u8)(((j - i) / 2) + i);
-    return concat(memory,
-                  new_(memory, string, i, m),
-                  new_(memory, string, m, j));
+    return concat(memory, new_(memory, string, i, m), new_(memory, string, m, j));
 }
 
 static Pair _split(Memory* memory, Rope* rope, i8 i) {

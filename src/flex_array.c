@@ -41,9 +41,7 @@ static STRUCT* PUSH(STRUCT* array, TYPE item) {
         } else {
             array->cap = (u8)(array->cap << 1);
         }
-        array =
-            (FlexArray*)realloc(array,
-                                sizeof(STRUCT) + (sizeof(TYPE) * array->cap));
+        array = (FlexArray*)realloc(array, sizeof(STRUCT) + (sizeof(TYPE) * array->cap));
         if (array == NULL) {
             exit(EXIT_FAILURE);
         }

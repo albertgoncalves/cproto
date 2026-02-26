@@ -87,19 +87,13 @@ static void set_pixels(pixel* pixels) {
 }
 
 static void write_bmp(fileHandle* file, bmpBuffer* buffer) {
-    if (fwrite(&buffer->bmp_header, 1, sizeof(bmpHeader), file) !=
-        sizeof(bmpHeader))
-    {
+    if (fwrite(&buffer->bmp_header, 1, sizeof(bmpHeader), file) != sizeof(bmpHeader)) {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->dib_header, 1, sizeof(dibHeader), file) !=
-        sizeof(dibHeader))
-    {
+    if (fwrite(&buffer->dib_header, 1, sizeof(dibHeader), file) != sizeof(dibHeader)) {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->pixels, 1, sizeof(pixel[SIZE]), file) !=
-        sizeof(pixel[SIZE]))
-    {
+    if (fwrite(&buffer->pixels, 1, sizeof(pixel[SIZE]), file) != sizeof(pixel[SIZE])) {
         exit(EXIT_FAILURE);
     }
 }

@@ -85,9 +85,7 @@ static Block** stack_pop(void) {
 
 static Data pack_literal(Data data) {
     return (Data){
-        .as_u64 =
-            ((0x7FFFFFFFFFFFFFFFllu & data.as_u64) << DATA_LITERAL_SHIFT) |
-            DATA_LITERAL_TAG,
+        .as_u64 = ((0x7FFFFFFFFFFFFFFFllu & data.as_u64) << DATA_LITERAL_SHIFT) | DATA_LITERAL_TAG,
     };
 }
 
@@ -158,7 +156,7 @@ static void collect(void) {
                 Block* old = root->data[j].as_block;
 
                 const Bool forward = old->forward;
-                Block* new = copy(old);
+                Block*     new = copy(old);
 
                 printf("%s child pointer `%p` to `%p`\n",
                        forward ? "Forwarded" : "Copied",

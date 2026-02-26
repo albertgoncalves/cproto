@@ -17,16 +17,11 @@ typedef struct timespec Time;
 #define MICRO_PER_SECOND 1000000llu
 #define NANO_PER_MICRO   (NANO_PER_SECOND / MICRO_PER_SECOND)
 
-#define EXIT_IF(condition)         \
-    if (condition) {               \
-        fflush(stdout);            \
-        fprintf(stderr,            \
-                "%s:%s:%d `%s`\n", \
-                __FILE__,          \
-                __func__,          \
-                __LINE__,          \
-                #condition);       \
-        _exit(ERROR);              \
+#define EXIT_IF(condition)                                                            \
+    if (condition) {                                                                  \
+        fflush(stdout);                                                               \
+        fprintf(stderr, "%s:%s:%d `%s`\n", __FILE__, __func__, __LINE__, #condition); \
+        _exit(ERROR);                                                                 \
     }
 
 static u64 get_monotonic(void) {

@@ -18,8 +18,7 @@ i32 main(void) {
     }
     Screen* screen = DefaultScreenOfDisplay(display);
     u64     root = RootWindowOfScreen(screen);
-    Window  window =
-        XCreateSimpleWindow(display, root, 100, 100, 100, 100, 0, 0, 0);
+    Window  window = XCreateSimpleWindow(display, root, 100, 100, 100, 100, 0, 0, 0);
     XClearWindow(display, window);
     XSelectInput(display, window, EXPOSURE_MASK | KEY_PRESS_MASK);
     XMapRaised(display, window);

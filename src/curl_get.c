@@ -22,9 +22,7 @@ i32 main(void) {
 
         const CurlCode result = curl_easy_perform(curl);
         if (result != CURLE_OK) {
-            fprintf(stderr,
-                    "curl_easy_perform() failed: %s\n",
-                    curl_easy_strerror(result));
+            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(result));
         }
 
         curl_easy_cleanup(curl);

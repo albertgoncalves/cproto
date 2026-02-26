@@ -78,12 +78,11 @@ int main(void) {
          "pack my box with five dozen liquor jugs",
          33);
     TEST("what is a sentence", "this is another thing", 13);
-    TEST(
-        "This has a wide range of applications, for instance, spell checkers, "
-        "correction systems for optical character recognition, etc.",
-        "Levenshtein distance is named after the Russian scientist Vladimir "
-        "Levenshtein, who devised the algorithm in 1965.",
-        99);
+    TEST("This has a wide range of applications, for instance, spell checkers, "
+         "correction systems for optical character recognition, etc.",
+         "Levenshtein distance is named after the Russian scientist Vladimir "
+         "Levenshtein, who devised the algorithm in 1965.",
+         99);
     printf("\n");
     return EXIT_SUCCESS;
 }

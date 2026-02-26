@@ -19,17 +19,12 @@ typedef enum {
 
 #define STATIC_ASSERT(condition) _Static_assert(condition, "!(" #condition ")")
 
-#define EXIT_IF(condition)             \
-    do {                               \
-        if (condition) {               \
-            fprintf(stderr,            \
-                    "%s:%s:%d `%s`\n", \
-                    __FILE__,          \
-                    __func__,          \
-                    __LINE__,          \
-                    #condition);       \
-            _exit(ERROR);              \
-        }                              \
+#define EXIT_IF(condition)                                                                \
+    do {                                                                                  \
+        if (condition) {                                                                  \
+            fprintf(stderr, "%s:%s:%d `%s`\n", __FILE__, __func__, __LINE__, #condition); \
+            _exit(ERROR);                                                                 \
+        }                                                                                 \
     } while (0)
 
 STATIC_ASSERT(sizeof(u64) == sizeof(void*));
@@ -79,8 +74,7 @@ static Block* alloc_block(u32 len) {
     Block* block = NULL;
     for (u32 i = 0; i < LEN_BLOCKS; ++i) {
         block = &BLOCKS[i];
-        if ((len <= block->cap) && ((block->parents == 0) || (!block->alive)))
-        {
+        if ((len <= block->cap) && ((block->parents == 0) || (!block->alive))) {
             EXIT_IF(block->cap < block->len);
             break;
         }

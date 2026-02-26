@@ -22,15 +22,10 @@ typedef struct {
     u8   len_nodes;
 } Heap;
 
-#define EXIT_IF(condition)           \
-    if (condition) {                 \
-        fprintf(stderr,              \
-                "\n%s:%s:%d `%s`\n", \
-                __FILE__,            \
-                __func__,            \
-                __LINE__,            \
-                #condition);         \
-        exit(EXIT_FAILURE);          \
+#define EXIT_IF(condition)                                                              \
+    if (condition) {                                                                    \
+        fprintf(stderr, "\n%s:%s:%d `%s`\n", __FILE__, __func__, __LINE__, #condition); \
+        exit(EXIT_FAILURE);                                                             \
     }
 
 static void show(Heap* heap) {
@@ -66,14 +61,10 @@ static void balance_down(Heap* heap, u8 i) {
         u8 l = GET_LEFT_CHILD(i);
         u8 r = l + 1;
         u8 m = i;
-        if ((l < heap->len_nodes) &&
-            (heap->nodes[l].priority < heap->nodes[m].priority))
-        {
+        if ((l < heap->len_nodes) && (heap->nodes[l].priority < heap->nodes[m].priority)) {
             m = l;
         }
-        if ((r < heap->len_nodes) &&
-            (heap->nodes[r].priority < heap->nodes[m].priority))
-        {
+        if ((r < heap->len_nodes) && (heap->nodes[r].priority < heap->nodes[m].priority)) {
             m = r;
         }
         if (i == m) {
@@ -123,14 +114,10 @@ static Bool check(Heap* heap, u8 i) {
     }
     u8 l = GET_LEFT_CHILD(i);
     u8 r = l + 1;
-    if ((l < heap->len_nodes) &&
-        (heap->nodes[l].priority < heap->nodes[i].priority))
-    {
+    if ((l < heap->len_nodes) && (heap->nodes[l].priority < heap->nodes[i].priority)) {
         return FALSE;
     }
-    if ((r < heap->len_nodes) &&
-        (heap->nodes[r].priority < heap->nodes[i].priority))
-    {
+    if ((r < heap->len_nodes) && (heap->nodes[r].priority < heap->nodes[i].priority)) {
         return FALSE;
     }
     return (Bool)(check(heap, l) && check(heap, r));

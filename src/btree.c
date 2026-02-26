@@ -25,16 +25,11 @@ typedef enum {
         _exit(ERROR);                                                \
     }
 
-#define EXIT_IF(condition)           \
-    if (condition) {                 \
-        fflush(stdout);              \
-        fprintf(stderr,              \
-                "%s:%s:%d \"%s\"\n", \
-                __FILE__,            \
-                __func__,            \
-                __LINE__,            \
-                #condition);         \
-        _exit(ERROR);                \
+#define EXIT_IF(condition)                                                              \
+    if (condition) {                                                                    \
+        fflush(stdout);                                                                 \
+        fprintf(stderr, "%s:%s:%d \"%s\"\n", __FILE__, __func__, __LINE__, #condition); \
+        _exit(ERROR);                                                                   \
     }
 
 typedef i32         Key;
@@ -95,12 +90,8 @@ typedef struct {
 } Memory;
 
 static Memory* alloc_memory(void) {
-    void* memory = mmap(NULL,
-                        sizeof(Memory),
-                        PROT_READ | PROT_WRITE,
-                        MAP_ANONYMOUS | MAP_PRIVATE,
-                        -1,
-                        0);
+    void* memory =
+        mmap(NULL, sizeof(Memory), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     EXIT_IF(memory == MAP_FAILED);
     return (Memory*)memory;
 }
@@ -193,10 +184,7 @@ static Key move_half_block(Block* left, Block* right) {
 // effect, propagate a split up through the tree. The draw-back here is wasted
 // space (since a given block is always split immediately after becoming full),
 // but with the benefit of greatly simplified traversal.
-static Block* insert_block(Memory* memory,
-                           Block*  block,
-                           Key     key,
-                           Value   value) {
+static Block* insert_block(Memory* memory, Block* block, Key key, Value value) {
     EXIT_IF(CAP_NODES <= block->len_nodes);
     u32 i = 0;
     for (; i < block->len_nodes; ++i) {
@@ -215,14 +203,13 @@ static Block* insert_block(Memory* memory,
             block->children[j + 1] = block->children[j];
         }
         block->children[i + 1].as_leafs = alloc_leafs(memory);
-        block->nodes[i] = move_half_leafs(block->children[i].as_leafs,
-                                          block->children[i + 1].as_leafs);
+        block->nodes[i] =
+            move_half_leafs(block->children[i].as_leafs, block->children[i + 1].as_leafs);
         ++block->len_nodes;
         break;
     }
     case CHILD_BLOCK: {
-        block->children[i].as_block =
-            insert_block(memory, block->children[i].as_block, key, value);
+        block->children[i].as_block = insert_block(memory, block->children[i].as_block, key, value);
         if (block->children[i].as_block->len_nodes < CAP_NODES) {
             return block;
         }
@@ -320,9 +307,7 @@ static void print_leafs(const Leafs* leafs, u32 padding) {
     EXIT_IF(!leafs);
     for (u32 i = 0; i < leafs->len; ++i) {
         print_padding(padding);
-        printf(SHOW_KEY_VALUE "\n",
-               leafs->buffer[i].key,
-               leafs->buffer[i].value);
+        printf(SHOW_KEY_VALUE "\n", leafs->buffer[i].key, leafs->buffer[i].value);
     }
 }
 
@@ -371,9 +356,7 @@ static void print_walk_leafs(const Block* block) {
         for (;;) {
             printf(" { ");
             for (u32 i = 0;;) {
-                printf(SHOW_KEY_VALUE,
-                       leafs->buffer[i].key,
-                       leafs->buffer[i].value);
+                printf(SHOW_KEY_VALUE, leafs->buffer[i].key, leafs->buffer[i].value);
                 ++i;
                 if (leafs->len <= i) {
                     break;

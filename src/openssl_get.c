@@ -61,8 +61,7 @@ i32 main(void) {
     i32 descriptor = -1;
     for (AddrInfo* addr = addrs; addr; addr = addr->ai_next) {
         descriptor = -1;
-        descriptor =
-            socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+        descriptor = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
         if (descriptor == -1) {
             break;
         }

@@ -24,8 +24,7 @@ typedef struct {
 } Memory;
 
 static Memory* init(usize size) {
-    Memory* memory =
-        (Memory*)calloc(1, sizeof(Memory) + (sizeof(Node) * size));
+    Memory* memory = (Memory*)calloc(1, sizeof(Memory) + (sizeof(Node) * size));
     if (memory == NULL) {
         exit(EXIT_FAILURE);
     }

@@ -16,12 +16,8 @@ int main(void) {
     }
 
     // NOTE: Let's make it so we can't read or write to the first and last pages.
-    void* first_page = mmap(pages,
-                            (size_t)pagesize,
-                            PROT_NONE,
-                            MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED,
-                            -1,
-                            0);
+    void* first_page =
+        mmap(pages, (size_t)pagesize, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
     if (first_page == MAP_FAILED) {
         return 1;
     }

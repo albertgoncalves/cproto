@@ -35,15 +35,10 @@ typedef struct {
     u16         len;
 } String;
 
-#define EXIT_IF(condition)           \
-    if (condition) {                 \
-        fprintf(stderr,              \
-                "\n%s:%s:%d `%s`\n", \
-                __FILE__,            \
-                __func__,            \
-                __LINE__,            \
-                #condition);         \
-        exit(EXIT_FAILURE);          \
+#define EXIT_IF(condition)                                                              \
+    if (condition) {                                                                    \
+        fprintf(stderr, "\n%s:%s:%d `%s`\n", __FILE__, __func__, __LINE__, #condition); \
+        exit(EXIT_FAILURE);                                                             \
     }
 
 #define TO_STRING(literal)          \
@@ -200,14 +195,13 @@ static Inst* alloc_inst(Memory* memory) {
     return &memory->insts[memory->len_insts++];
 }
 
-#define SET_CONCAT(memory)                                              \
-    if ((memory->len_tokens != 0) &&                                    \
-        (memory->tokens[memory->len_tokens - 1].tag != TOKEN_OR) &&     \
-        (memory->tokens[memory->len_tokens - 1].tag != TOKEN_CONCAT) && \
-        (memory->tokens[memory->len_tokens - 1].tag != TOKEN_LPAREN))   \
-    {                                                                   \
-        Token* token = alloc_token(memory);                             \
-        token->tag = TOKEN_CONCAT;                                      \
+#define SET_CONCAT(memory)                                                                       \
+    if ((memory->len_tokens != 0) && (memory->tokens[memory->len_tokens - 1].tag != TOKEN_OR) && \
+        (memory->tokens[memory->len_tokens - 1].tag != TOKEN_CONCAT) &&                          \
+        (memory->tokens[memory->len_tokens - 1].tag != TOKEN_LPAREN))                            \
+    {                                                                                            \
+        Token* token = alloc_token(memory);                                                      \
+        token->tag = TOKEN_CONCAT;                                                               \
     }
 
 static void set_tokens(Memory* memory, String string) {
@@ -379,27 +373,15 @@ static Expr* parse_expr(Memory* memory, u16 prev_binding) {
             break;
         }
         case TOKEN_ZERO_OR_ONE: {
-            SET_POSTFIX(memory,
-                        prev_binding,
-                        EXPR_ZERO_OR_ONE,
-                        BINDING_POSTFIX,
-                        expr);
+            SET_POSTFIX(memory, prev_binding, EXPR_ZERO_OR_ONE, BINDING_POSTFIX, expr);
             break;
         }
         case TOKEN_ZERO_OR_MANY: {
-            SET_POSTFIX(memory,
-                        prev_binding,
-                        EXPR_ZERO_OR_MANY,
-                        BINDING_POSTFIX,
-                        expr);
+            SET_POSTFIX(memory, prev_binding, EXPR_ZERO_OR_MANY, BINDING_POSTFIX, expr);
             break;
         }
         case TOKEN_ONE_OR_MANY: {
-            SET_POSTFIX(memory,
-                        prev_binding,
-                        EXPR_ONE_OR_MANY,
-                        BINDING_POSTFIX,
-                        expr);
+            SET_POSTFIX(memory, prev_binding, EXPR_ONE_OR_MANY, BINDING_POSTFIX, expr);
             break;
         }
         case TOKEN_LPAREN: {
@@ -594,19 +576,16 @@ static void resolve_labels(Memory* memory) {
         case PRE_INST_JUMP: {
             Inst* inst = alloc_inst(memory);
             inst->tag = INST_JUMP;
-            inst->op.as_line[0] =
-                memory->labels[memory->pre_insts[i].op.as_label[0]];
+            inst->op.as_line[0] = memory->labels[memory->pre_insts[i].op.as_label[0]];
             EXIT_IF(line <= inst->op.as_line[0]);
             break;
         }
         case PRE_INST_SPLIT: {
             Inst* inst = alloc_inst(memory);
             inst->tag = INST_SPLIT;
-            inst->op.as_line[0] =
-                memory->labels[memory->pre_insts[i].op.as_label[0]];
+            inst->op.as_line[0] = memory->labels[memory->pre_insts[i].op.as_label[0]];
             EXIT_IF(line <= inst->op.as_line[0]);
-            inst->op.as_line[1] =
-                memory->labels[memory->pre_insts[i].op.as_label[1]];
+            inst->op.as_line[1] = memory->labels[memory->pre_insts[i].op.as_label[1]];
             EXIT_IF(line <= inst->op.as_line[1]);
             break;
         }
@@ -657,9 +636,7 @@ static void show_inst(Inst inst) {
         break;
     }
     case INST_SPLIT:
-        printf("\tsplit\t" LINE_FMT ",\t" LINE_FMT "\n",
-               inst.op.as_line[0],
-               inst.op.as_line[1]);
+        printf("\tsplit\t" LINE_FMT ",\t" LINE_FMT "\n", inst.op.as_line[0], inst.op.as_line[1]);
         break;
     default: {
         ERROR();
@@ -794,12 +771,11 @@ static Bounds search(Memory* memory, String string) {
     return result;
 }
 
-#define SEARCH(memory, string_literal, start_, end_)               \
-    {                                                              \
-        Bounds result = search(memory, TO_STRING(string_literal)); \
-        EXIT_IF((!result.match) || (result.start != start_) ||     \
-                (result.end != end_));                             \
-        fprintf(stderr, ".");                                      \
+#define SEARCH(memory, string_literal, start_, end_)                                  \
+    {                                                                                 \
+        Bounds result = search(memory, TO_STRING(string_literal));                    \
+        EXIT_IF((!result.match) || (result.start != start_) || (result.end != end_)); \
+        fprintf(stderr, ".");                                                         \
     }
 
 #define NO_SEARCH(memory, string_literal)                         \
@@ -885,8 +861,7 @@ i32 main(void) {
         fprintf(stderr, "\n");
     }
     {
-        compile(memory,
-                TO_STRING("a?a?a?a?a?a?a?a?a?a?a?a?a?a?aaaaaaaaaaaaaaaaaaa"));
+        compile(memory, TO_STRING("a?a?a?a?a?a?a?a?a?a?a?a?a?a?aaaaaaaaaaaaaaaaaaa"));
         NO_SEARCH(memory, "aaaaaaaaaaaaaaaaaa");
         SEARCH(memory, " aaaaaaaaaaaaaaaaaaa", 1, 20);
         SEARCH(memory, " aaaaaaaaaaaaaaaaaaaaaaaaa", 1, 26);

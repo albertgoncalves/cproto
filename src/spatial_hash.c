@@ -17,15 +17,10 @@ typedef double   f64;
 
 #define COUNT_LISTS 64
 
-#define EXIT_IF(condition)         \
-    if (condition) {               \
-        fprintf(stderr,            \
-                "%s:%s:%d `%s`\n", \
-                __FILE__,          \
-                __func__,          \
-                __LINE__,          \
-                #condition);       \
-        exit(EXIT_FAILURE);        \
+#define EXIT_IF(condition)                                                            \
+    if (condition) {                                                                  \
+        fprintf(stderr, "%s:%s:%d `%s`\n", __FILE__, __func__, __LINE__, #condition); \
+        exit(EXIT_FAILURE);                                                           \
     }
 
 #define MIN(a, b)     ((a) < (b) ? (a) : (b))
@@ -118,14 +113,11 @@ static void set_bounds(Memory* memory) {
     memory->bounds = CUBES[0];
     for (u8 i = 0; i < COUNT_CUBES; ++i) {
         memory->bounds.bottom_left_front.x =
-            MIN(memory->bounds.bottom_left_front.x,
-                CUBES[i].bottom_left_front.x);
+            MIN(memory->bounds.bottom_left_front.x, CUBES[i].bottom_left_front.x);
         memory->bounds.bottom_left_front.y =
-            MIN(memory->bounds.bottom_left_front.y,
-                CUBES[i].bottom_left_front.y);
+            MIN(memory->bounds.bottom_left_front.y, CUBES[i].bottom_left_front.y);
         memory->bounds.bottom_left_front.z =
-            MIN(memory->bounds.bottom_left_front.z,
-                CUBES[i].bottom_left_front.z);
+            MIN(memory->bounds.bottom_left_front.z, CUBES[i].bottom_left_front.z);
         memory->bounds.top_right_back.x =
             MAX(memory->bounds.top_right_back.x, CUBES[i].top_right_back.x);
         memory->bounds.top_right_back.y =
@@ -140,12 +132,9 @@ static void set_bounds(Memory* memory) {
 
 static void set_span(Memory* memory) {
     memory->span = (Vec3){
-        .x = memory->bounds.top_right_back.x -
-             memory->bounds.bottom_left_front.x,
-        .y = memory->bounds.top_right_back.y -
-             memory->bounds.bottom_left_front.y,
-        .z = memory->bounds.top_right_back.z -
-             memory->bounds.bottom_left_front.z,
+        .x = memory->bounds.top_right_back.x - memory->bounds.bottom_left_front.x,
+        .y = memory->bounds.top_right_back.y - memory->bounds.bottom_left_front.y,
+        .z = memory->bounds.top_right_back.z - memory->bounds.bottom_left_front.z,
     };
 }
 
@@ -153,31 +142,25 @@ static Range get_range(Memory* memory, Cube cube) {
     return (Range){
         .lower =
             (Index){
-                .x = (u8)(((cube.bottom_left_front.x -
-                            memory->bounds.bottom_left_front.x) /
+                .x = (u8)(((cube.bottom_left_front.x - memory->bounds.bottom_left_front.x) /
                            memory->span.x) *
                           COUNT_GRID_X),
-                .y = (u8)(((cube.bottom_left_front.y -
-                            memory->bounds.bottom_left_front.y) /
+                .y = (u8)(((cube.bottom_left_front.y - memory->bounds.bottom_left_front.y) /
                            memory->span.y) *
                           COUNT_GRID_Y),
-                .z = (u8)(((cube.bottom_left_front.z -
-                            memory->bounds.bottom_left_front.z) /
+                .z = (u8)(((cube.bottom_left_front.z - memory->bounds.bottom_left_front.z) /
                            memory->span.z) *
                           COUNT_GRID_Z),
             },
         .upper =
             (Index){
-                .x = (u8)(((cube.top_right_back.x -
-                            memory->bounds.bottom_left_front.x) /
+                .x = (u8)(((cube.top_right_back.x - memory->bounds.bottom_left_front.x) /
                            memory->span.x) *
                           COUNT_GRID_X),
-                .y = (u8)(((cube.top_right_back.y -
-                            memory->bounds.bottom_left_front.y) /
+                .y = (u8)(((cube.top_right_back.y - memory->bounds.bottom_left_front.y) /
                            memory->span.y) *
                           COUNT_GRID_Y),
-                .z = (u8)(((cube.top_right_back.z -
-                            memory->bounds.bottom_left_front.z) /
+                .z = (u8)(((cube.top_right_back.z - memory->bounds.bottom_left_front.z) /
                            memory->span.z) *
                           COUNT_GRID_Z),
             },
@@ -212,14 +195,8 @@ static void set_grid(Memory* memory) {
         for (u8 x = range.lower.x; x <= range.upper.x; ++x) {
             for (u8 y = range.lower.y; y <= range.upper.y; ++y) {
                 for (u8 z = range.lower.z; z <= range.upper.z; ++z) {
-                    push_grid(memory,
-                              ((Index){.x = x, .y = y, .z = z}),
-                              &CUBES[i]);
-                    printf("%p -> {x:%hhu, y:%hhu, z:%hhu}\n",
-                           (void*)&CUBES[i],
-                           x,
-                           y,
-                           z);
+                    push_grid(memory, ((Index){.x = x, .y = y, .z = z}), &CUBES[i]);
+                    printf("%p -> {x:%hhu, y:%hhu, z:%hhu}\n", (void*)&CUBES[i], x, y, z);
                 }
             }
         }
@@ -329,12 +306,11 @@ i32 main(void) {
         set_span(memory);
         set_grid(memory);
         show_grid(memory);
-        set_intersects(
-            memory,
-            (Cube){
-                .bottom_left_front = {.x = 4.5f, .y = 4.5f, .z = 0.0f},
-                .top_right_back = {.x = 5.0f, .y = 5.0f, .z = 1.0f},
-            });
+        set_intersects(memory,
+                       (Cube){
+                           .bottom_left_front = {.x = 4.5f, .y = 4.5f, .z = 0.0f},
+                           .top_right_back = {.x = 5.0f, .y = 5.0f, .z = 1.0f},
+                       });
         free(memory);
     }
     return EXIT_SUCCESS;

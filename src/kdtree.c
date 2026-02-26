@@ -13,15 +13,10 @@ typedef double   f64;
         exit(EXIT_FAILURE);                                          \
     }
 
-#define EXIT_IF(condition)         \
-    if (condition) {               \
-        fprintf(stderr,            \
-                "%s:%s:%d `%s`\n", \
-                __FILE__,          \
-                __func__,          \
-                __LINE__,          \
-                #condition);       \
-        exit(EXIT_FAILURE);        \
+#define EXIT_IF(condition)                                                            \
+    if (condition) {                                                                  \
+        fprintf(stderr, "%s:%s:%d `%s`\n", __FILE__, __func__, __LINE__, #condition); \
+        exit(EXIT_FAILURE);                                                           \
     }
 
 typedef struct {
@@ -211,9 +206,7 @@ static f32 distance_squared(Vec3 a, Vec3 b) {
         }                                                               \
     }
 
-static void show_within_radius(const Node* node,
-                               Vec3        point,
-                               f32         radius_squared) {
+static void show_within_radius(const Node* node, Vec3 point, f32 radius_squared) {
     if (!node) {
         return;
     }

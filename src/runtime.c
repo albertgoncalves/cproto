@@ -74,8 +74,7 @@ Scope* scope_new_from(Scope* parent) {
     return scope;
 }
 
-#define EQ(a_chars, a_len, b_chars, b_len) \
-    ((a_len == b_len) && (!memcmp(a_chars, b_chars, a_len)))
+#define EQ(a_chars, a_len, b_chars, b_len) ((a_len == b_len) && (!memcmp(a_chars, b_chars, a_len)))
 
 i64 scope_lookup(Scope* scope, char* key_chars, u64 key_len) {
     while (scope) {
@@ -134,10 +133,7 @@ static void print_scopes(Scope* scope) {
             for (u32 _ = 0; _ < (indent + 2); ++_) {
                 putchar(' ');
             }
-            printf("%.*s: %ld\n",
-                   (i32)list->key_len,
-                   list->key_chars,
-                   list->value);
+            printf("%.*s: %ld\n", (i32)list->key_len, list->key_chars, list->value);
             list = list->next;
         }
         scope = scope->parent;

@@ -20,8 +20,7 @@ i32 main(i32 n, const char** args) {
     if (n < 2) {
         return ERROR;
     }
-    i32 descriptor =
-        open(args[1], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    i32 descriptor = open(args[1], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (descriptor == -1) {
         return ERROR;
     }
@@ -31,8 +30,7 @@ i32 main(i32 n, const char** args) {
         return ERROR;
     }
 
-    char* memory =
-        (char*)mmap(0, LEN, PROT_READ | PROT_WRITE, MAP_SHARED, descriptor, 0);
+    char* memory = (char*)mmap(0, LEN, PROT_READ | PROT_WRITE, MAP_SHARED, descriptor, 0);
     if (memory == MAP_FAILED) {
         close(descriptor);
         return ERROR;

@@ -58,11 +58,7 @@ i32 main(void) {
     printf("  [ Socket created successfully ]\n");
 
     i32 option = 1;
-    EXIT_IF_ERRNO(setsockopt(host_socket,
-                             SOL_SOCKET,
-                             SO_REUSEADDR,
-                             &option,
-                             sizeof(option)) == -1);
+    EXIT_IF_ERRNO(setsockopt(host_socket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)) == -1);
 
     SockAddrIn host_addr;
     SockLen    host_len = sizeof(host_addr);
@@ -97,8 +93,7 @@ i32 main(void) {
         SockAddrIn client_addr;
         SockLen    client_len = sizeof(client_addr);
 
-        i32 client_socket =
-            accept(host_socket, (SockAddr*)&client_addr, &client_len);
+        i32 client_socket = accept(host_socket, (SockAddr*)&client_addr, &client_len);
         if (client_socket == -1) {
             PRINT_ERRNO();
             continue;

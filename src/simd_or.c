@@ -16,8 +16,7 @@ i32 main(void) {
     i8 a[] = {1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1};
     i8 b[] = {4, 2, 2, 0, 4, 2, 2, 0, 4, 2, 2, 0, 4, 2, 2, 0};
     i8 c[16] = {0};
-    _mm_store_si128((Simd4i32*)&c[0],
-                    _mm_or_si128(*(Simd4i32*)&a[0], *(Simd4i32*)&b[0]));
+    _mm_store_si128((Simd4i32*)&c[0], _mm_or_si128(*(Simd4i32*)&a[0], *(Simd4i32*)&b[0]));
     printf("[");
     for (u8 i = 0; i < 16; ++i) {
         printf(" %hhu", c[i]);

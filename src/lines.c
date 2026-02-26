@@ -93,8 +93,7 @@ __attribute__((no_sanitize("integer"))) static u32 pcg_32(pcgRng* rng) {
     return (xor_shift >> rotate) | (xor_shift << ((-rotate) & 31u));
 }
 
-__attribute__((no_sanitize("integer"))) static u32 pcg_32_bound(pcgRng* rng,
-                                                                u32 bound) {
+__attribute__((no_sanitize("integer"))) static u32 pcg_32_bound(pcgRng* rng, u32 bound) {
     u32 threshold = (-bound) % bound;
     for (;;) {
         u32 value = pcg_32(rng);
@@ -151,19 +150,13 @@ static void set_pixels(color* mask, pixel* pixels) {
 }
 
 static void write_bmp(fileHandle* file, bmpBuffer* buffer) {
-    if (fwrite(&buffer->bmp_header, 1u, sizeof(bmpHeader), file) !=
-        sizeof(bmpHeader))
-    {
+    if (fwrite(&buffer->bmp_header, 1u, sizeof(bmpHeader), file) != sizeof(bmpHeader)) {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->dib_header, 1u, sizeof(dibHeader), file) !=
-        sizeof(dibHeader))
-    {
+    if (fwrite(&buffer->dib_header, 1u, sizeof(dibHeader), file) != sizeof(dibHeader)) {
         exit(EXIT_FAILURE);
     }
-    if (fwrite(&buffer->pixels, 1u, sizeof(pixel[SIZE]), file) !=
-        sizeof(pixel[SIZE]))
-    {
+    if (fwrite(&buffer->pixels, 1u, sizeof(pixel[SIZE]), file) != sizeof(pixel[SIZE])) {
         exit(EXIT_FAILURE);
     }
 }

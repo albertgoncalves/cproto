@@ -12,8 +12,7 @@ typedef struct {
     u8          len;
 } Slice;
 
-#define PRINT_VIEW(view) \
-    printf("\"%.*s\"\n", view.len, view.string + view.start)
+#define PRINT_VIEW(view) printf("\"%.*s\"\n", view.len, view.string + view.start)
 
 static const char* STRING = "foo bar baz";
 
