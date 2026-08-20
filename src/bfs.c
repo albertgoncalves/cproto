@@ -31,8 +31,8 @@ static Vec2u from_index(u16 i) {
     };
 }
 
-static void reverse_u16(u16* array, i32 len) {
-    const i32 k = len >> 1;
+static void reverse_u16(u16* array, u32 len) {
+    const u32 k = len >> 1;
     for (u16 i = 0; i < k; ++i) {
         const u16 j = (u16)((len - i) - 1);
         const u16 x = array[i];
@@ -57,7 +57,7 @@ static void bfs_push(const char* map,
     visited[child] = true;
 }
 
-static i32 bfs(const char* map,
+static u32 bfs(const char* map,
                u16*        stack,
                u16*        parents,
                bool*       visited,
@@ -76,7 +76,7 @@ static i32 bfs(const char* map,
         const u16 parent = stack[i++];
 
         if (parent == end) {
-            i32 len_path = 0;
+            u32 len_path = 0;
 
             for (u16 cell = parent;;) {
                 path[len_path++] = cell;
@@ -109,7 +109,7 @@ static i32 bfs(const char* map,
         }
     }
 
-    return -1;
+    return 0;
 }
 
 i32 main(void) {
@@ -148,8 +148,8 @@ i32 main(void) {
 
     static_assert(sizeof(visited) == (sizeof(bool) * CAP_MAP));
 
-    const i32 len_path = bfs(map, stack, parents, visited, path, start, end);
-    assert(len_path != -1);
+    const u32 len_path = bfs(map, stack, parents, visited, path, start, end);
+    assert(len_path != 0);
 
     for (u8 y = 0; y < MAP_H; ++y) {
         for (u8 x = 0; x < MAP_W; ++x) {
@@ -166,7 +166,7 @@ i32 main(void) {
             }
 
             bool found = false;
-            for (i32 i = 0; i < len_path; ++i) {
+            for (u32 i = 0; i < len_path; ++i) {
                 if (cell == path[i]) {
                     found = true;
                     break;
