@@ -40,7 +40,7 @@ static void bfs_push(const char map[][MAP_X],
                      u32*       j,
                      Vec2u      parent,
                      Vec2u      child) {
-    if ((map[child.y][child.x] == WALL) || visited[child.y][child.x]) {
+    if ((map[child.y][child.x] == WALL) | visited[child.y][child.x]) {
         return;
     }
 
