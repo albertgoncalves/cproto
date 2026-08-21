@@ -16,96 +16,89 @@ typedef struct {
 
 #define WALL '#'
 
-#define MAP_W   20
-#define MAP_H   MAP_W
-#define CAP_MAP (MAP_W * MAP_H)
+#define MAP_X   20
+#define MAP_Y   MAP_X
+#define CAP_MAP (MAP_X * MAP_Y)
 
-static u16 to_index(Vec2u v) {
-    return v.x + (v.y * MAP_W);
+static bool eq_vec2u(Vec2u a, Vec2u b) {
+    return (a.x == b.x) & (a.y == b.y);
 }
 
-static Vec2u from_index(u16 i) {
-    return (Vec2u){
-        (u8)(i % MAP_W),
-        (u8)(i / MAP_W),
-    };
-}
-
-static void reverse_u16(u16* array, u32 len) {
+static void reverse_vec2u(Vec2u array[], u32 len) {
     const u32 k = len >> 1;
-    for (u16 i = 0; i < k; ++i) {
-        const u16 j = (u16)((len - i) - 1);
-        const u16 x = array[i];
+    for (u32 i = 0; i < k; ++i) {
+        const u32   j = (len - i) - 1;
+        const Vec2u x = array[i];
         array[i] = array[j];
         array[j] = x;
     }
 }
 
-static void bfs_push(const char* map,
-                     u16*        stack,
-                     u16*        parents,
-                     bool*       visited,
-                     u32*        j,
-                     u16         parent,
-                     u16         child) {
-    if ((map[child] == WALL) || visited[child]) {
+static void bfs_push(const char map[][MAP_X],
+                     Vec2u      stack[],
+                     Vec2u      parents[][MAP_X],
+                     bool       visited[][MAP_X],
+                     u32*       j,
+                     Vec2u      parent,
+                     Vec2u      child) {
+    if ((map[child.y][child.x] == WALL) || visited[child.y][child.x]) {
         return;
     }
 
     stack[(*j)++] = child;
-    parents[child] = parent;
-    visited[child] = true;
+    parents[child.y][child.x] = parent;
+    visited[child.y][child.x] = true;
 }
 
-static u32 bfs(const char* map,
-               u16*        stack,
-               u16*        parents,
-               bool*       visited,
-               u16*        path,
-               u16         start,
-               u16         end) {
+static u32 bfs(const char map[][MAP_X],
+               Vec2u      stack[],
+               Vec2u      parents[][MAP_X],
+               bool       visited[][MAP_X],
+               Vec2u      path[],
+               Vec2u      start,
+               Vec2u      end) {
     u32 i = 0;
     u32 j = 0;
 
     stack[j++] = start;
 
     memset(visited, false, sizeof(bool) * CAP_MAP);
-    visited[start] = true;
+    visited[start.y][start.x] = true;
 
     while (i < j) {
-        const u16 parent = stack[i++];
+        const Vec2u parent = stack[i++];
 
-        if (parent == end) {
+        if (eq_vec2u(parent, end)) {
             u32 len_path = 0;
 
-            for (u16 cell = parent;;) {
+            for (Vec2u cell = parent;;) {
                 path[len_path++] = cell;
 
-                if (cell == start) {
+                if (eq_vec2u(cell, start)) {
                     break;
                 }
 
-                cell = parents[cell];
+                cell = parents[cell.y][cell.x];
             }
 
-            reverse_u16(path, len_path);
+            reverse_vec2u(path, len_path);
 
             return len_path;
         }
 
-        const Vec2u v = from_index(parent);
+        const Vec2u v = parent;
 
         if (0 < v.x) {
-            bfs_push(map, stack, parents, visited, &j, parent, to_index((Vec2u){v.x - 1, v.y}));
+            bfs_push(map, stack, parents, visited, &j, parent, (Vec2u){v.x - 1, v.y});
         }
         if (0 < v.y) {
-            bfs_push(map, stack, parents, visited, &j, parent, to_index((Vec2u){v.x, v.y - 1}));
+            bfs_push(map, stack, parents, visited, &j, parent, (Vec2u){v.x, v.y - 1});
         }
-        if (v.x < (MAP_W - 1)) {
-            bfs_push(map, stack, parents, visited, &j, parent, to_index((Vec2u){v.x + 1, v.y}));
+        if (v.x < (MAP_X - 1)) {
+            bfs_push(map, stack, parents, visited, &j, parent, (Vec2u){v.x + 1, v.y});
         }
-        if (v.y < (MAP_H - 1)) {
-            bfs_push(map, stack, parents, visited, &j, parent, to_index((Vec2u){v.x, v.y + 1}));
+        if (v.y < (MAP_Y - 1)) {
+            bfs_push(map, stack, parents, visited, &j, parent, (Vec2u){v.x, v.y + 1});
         }
     }
 
@@ -113,71 +106,71 @@ static u32 bfs(const char* map,
 }
 
 i32 main(void) {
-    for (u16 i = 0; i < CAP_MAP; ++i) {
-        assert(i == to_index(from_index(i)));
-    }
+    // clang-format off
+    static const char map[MAP_Y][MAP_X] = {
+        "                 #  ",
+        "                 #  ",
+        "  #  ####  #######  ",
+        "  #     #           ",
+        "  #     #           ",
+        "  #  #  #######  ###",
+        "     #  #        #  ",
+        "     #  #        #  ",
+        "######  ####  ####  ",
+        "  #        #        ",
+        "  #        #        ",
+        "  #  #######  ####  ",
+        "              #     ",
+        "              #     ",
+        "######  #######  ###",
+        "  #     #        #  ",
+        "  #     #        #  ",
+        "  #  #  ####  #  #  ",
+        "     #        #     ",
+        "     #        #     ",
+    };
+    // clang-format on
 
-    static const char map[CAP_MAP + 1] = "                 #  "
-                                         "                 #  "
-                                         "  #  ####  #######  "
-                                         "  #     #           "
-                                         "  #     #           "
-                                         "  #  #  #######  ###"
-                                         "     #  #        #  "
-                                         "     #  #        #  "
-                                         "######  ####  ####  "
-                                         "  #        #        "
-                                         "  #        #        "
-                                         "  #  #######  ####  "
-                                         "              #     "
-                                         "              #     "
-                                         "######  #######  ###"
-                                         "  #     #        #  "
-                                         "  #     #        #  "
-                                         "  #  #  ####  #  #  "
-                                         "     #        #     "
-                                         "     #        #     ";
+    const Vec2u start = {1, 19};
+    const Vec2u end = {19, 1};
 
-    const u16 start = to_index((Vec2u){1, 19});
-    const u16 end = to_index((Vec2u){19, 1});
-
-    static u16  parents[CAP_MAP];
-    static u16  stack[CAP_MAP];
-    static bool visited[CAP_MAP];
-    static u16  path[CAP_MAP];
+    static Vec2u parents[MAP_Y][MAP_X];
+    static Vec2u stack[CAP_MAP];
+    static bool  visited[MAP_Y][MAP_X];
+    static Vec2u path[CAP_MAP];
 
     static_assert(sizeof(visited) == (sizeof(bool) * CAP_MAP));
 
     const u32 len_path = bfs(map, stack, parents, visited, path, start, end);
     assert(len_path != 0);
 
-    for (u8 y = 0; y < MAP_H; ++y) {
-        for (u8 x = 0; x < MAP_W; ++x) {
-            const u16 cell = to_index((Vec2u){x, y});
+    for (u8 y = 0; y < MAP_Y; ++y) {
+        for (u8 x = 0; x < MAP_X; ++x) {
+            const Vec2u cell = {x, y};
 
-            if (cell == end) {
+            if (eq_vec2u(cell, end)) {
                 putchar('e');
                 continue;
             }
 
-            if (cell == start) {
+            if (eq_vec2u(cell, start)) {
                 putchar('s');
                 continue;
             }
 
             bool found = false;
             for (u32 i = 0; i < len_path; ++i) {
-                if (cell == path[i]) {
+                if (eq_vec2u(cell, path[i])) {
                     found = true;
                     break;
                 }
             }
 
             if (found) {
-                assert(map[cell] != '#');
+                assert(map[cell.y][cell.x] != '#');
                 putchar('.');
             } else {
-                putchar(map[cell]);
+                putchar(map[cell.y][cell.x]);
             }
         }
         putchar('\n');

@@ -37,6 +37,7 @@ export FLAGS=(
     -Wno-cast-align
     -Wno-c++-keyword
     -Wno-covered-switch-default
+    -Wno-c++-unterminated-string-initialization
     -Wno-declaration-after-statement
     -Wno-disabled-macro-expansion
     -Wno-extra-semi-stmt
@@ -46,6 +47,7 @@ export FLAGS=(
     -Wno-pre-c11-compat
     -Wno-reserved-identifier
     -Wno-unsafe-buffer-usage
+    -Wno-unterminated-string-initialization
     -Wno-used-but-marked-unused
     -Wno-vla
 )
