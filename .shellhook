@@ -32,6 +32,7 @@ export FLAGS=(
     "-std=gnu11"
     -Werror
     -Weverything
+    -Wno-c23-compat
     -Wno-c2x-extensions
     -Wno-c++98-compat
     -Wno-cast-align
